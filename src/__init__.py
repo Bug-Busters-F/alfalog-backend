@@ -60,3 +60,9 @@ def add_resources(api: Api) -> None:
 
     api.add_resource(UEs, "/api/ues", "/api/ues/")
     api.add_resource(UE, "/api/ues/<int:id>")
+
+    # Pais resources
+    from src.paises.resources import Paises, Pais
+
+    api.add_resource(Paises, "/api/paises", "/api/paises/")
+    api.add_resource(Pais, "/api/paises/<int:id>")
