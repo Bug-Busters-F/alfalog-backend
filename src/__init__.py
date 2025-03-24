@@ -43,8 +43,14 @@ def register_blueprints(app: Flask) -> None:
 def add_resources(api: Api) -> None:
     """Load the resources into the API."""
 
-    # User resources
+    # URF resources
     from src.urfs.resources import URFs, URF
 
     api.add_resource(URFs, "/api/urfs", "/api/urfs/")
     api.add_resource(URF, "/api/urfs/<int:id>")
+
+    # Via resources
+    from src.vias.resources import Vias, Via
+
+    api.add_resource(Vias, "/api/vias", "/api/vias/")
+    api.add_resource(Via, "/api/vias/<int:id>")
