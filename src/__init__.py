@@ -54,3 +54,9 @@ def add_resources(api: Api) -> None:
 
     api.add_resource(Vias, "/api/vias", "/api/vias/")
     api.add_resource(Via, "/api/vias/<int:id>")
+
+    # Unidades Estatísticas resources
+    from src.ues.resources import UEs, UE
+
+    api.add_resource(UEs, "/api/ues", "/api/ues/")
+    api.add_resource(UE, "/api/ues/<int:id>")
