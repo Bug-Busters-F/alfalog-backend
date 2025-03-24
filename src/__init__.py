@@ -72,8 +72,15 @@ def add_resources(api: Api) -> None:
 
     api.add_resource(UFs, "/api/ufs", "/api/ufs/")
     api.add_resource(UF, "/api/ufs/<int:id>")
+
     # SH6 resources
     from src.sh6s.resources import SH6s, SH6
 
     api.add_resource(SH6s, "/api/sh6s", "/api/sh6s/")
     api.add_resource(SH6, "/api/sh6s/<int:id>")
+
+    # SH4 resources
+    from src.sh4s.resources import SH4s, SH4
+
+    api.add_resource(SH4s, "/api/sh4s", "/api/sh4s/")
+    api.add_resource(SH4, "/api/sh4s/<int:id>")
