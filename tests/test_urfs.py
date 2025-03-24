@@ -15,6 +15,18 @@ def test_get_urfs_empty(client):
     assert response.json == []
 
 
+@pytest.mark.dependency(name="create_urf")
+def test_create_urf(client) -> int:
+    """Test Create a new valid entry is successful."""
+    data = {"nome": "URF Test", "codigo": "1234"}
+    response = client.post(url, json=data)
+
+    assert response.status_code == 201
+    assert "id" in response.json["data"]
+    assert response.json["data"]["nome"] == "URF Test"
+    assert response.json["data"]["codigo"] == "1234"
+
+
 @pytest.mark.dependency(depends=["create_urf"])
 def test_get_urfs_with_data(client):
     """Test Retrieve all entries when database has data is successful."""
@@ -32,18 +44,6 @@ def test_get_urfs_with_data(client):
         urf["data"]["nome"] == "URF Test" and urf["data"]["codigo"] == "1234"
         for urf in response.json
     )
-
-
-@pytest.mark.dependency(name="create_urf")
-def test_create_urf(client) -> int:
-    """Test Create a new valid entry is successful."""
-    data = {"nome": "URF Test", "codigo": "1234"}
-    response = client.post(url, json=data)
-
-    assert response.status_code == 201
-    assert "id" in response.json["data"]
-    assert response.json["data"]["nome"] == "URF Test"
-    assert response.json["data"]["codigo"] == "1234"
 
 
 def test_create_duplicate_urf(client):
