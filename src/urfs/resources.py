@@ -62,7 +62,7 @@ class URF(BaseResource):
         # input validation
         args = model_args.parse_args(
             strict=True,
-            http_error_code=422,
+            http_error_code=400,
         )
 
         entry = self.db.session.query(URFModel).filter_by(id=id).first()

@@ -144,7 +144,7 @@ def test_update_urf_with_same_codigo(client):
 def test_update_nonexistent_urf(client):
     """Test updating a non-existent URF fails."""
     non_existent_id = 9999
-    data = {"nome": "Updated Name", "codigo": "5678"}
+    data = {"nome": "URF Test", "codigo": "1234"}
 
     response = client.put(f"{url}{non_existent_id}", json=data)
 
@@ -177,7 +177,7 @@ def test_delete_existing_urf(client):
     """Test deleting an existing URF is successful."""
 
     # Create a URF
-    data = {"nome": "URF to Delete", "codigo": "9999"}
+    data = {"nome": "URF Test", "codigo": "1234"}
     urf = client.post(url, json=data).json["data"]
 
     # Delete the created URF
