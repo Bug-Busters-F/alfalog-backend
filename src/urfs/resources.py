@@ -1,3 +1,4 @@
+from src.core.resources import BaseResource
 from src.utils import sqlalchemy
 from .model import URFModel
 from .fields import model_fields
@@ -8,17 +9,7 @@ from flask_restful import Resource, marshal_with, abort
 from werkzeug import exceptions
 
 
-class Resources(Resource):
-    """An abstract class for common Model Resource features."""
-
-    db: SQLAlchemy
-
-    def __init__(self):
-        super().__init__()
-        self.db = sqlalchemy.SQLAlchemy.get_instance()
-
-
-class URFs(Resources):
+class URFs(BaseResource):
     """Model's collection routing (controller)."""
 
     @marshal_with(model_fields)
@@ -48,7 +39,7 @@ class URFs(Resources):
         return entry, 201
 
 
-class URF(Resources):
+class URF(BaseResource):
     """Model's routing (controller)."""
 
     @marshal_with(model_fields)
