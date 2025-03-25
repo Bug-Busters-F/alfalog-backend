@@ -84,3 +84,9 @@ def add_resources(api: Api) -> None:
 
     api.add_resource(SH4s, "/api/sh4s", "/api/sh4s/")
     api.add_resource(SH4, "/api/sh4s/<int:id>")
+
+    # NCM resources
+    from src.ncms.resources import NCMs, NCM
+
+    api.add_resource(NCMs, "/api/ncms", "/api/ncms/")
+    api.add_resource(NCM, "/api/ncms/<int:id>")
