@@ -13,4 +13,4 @@ class SH6Model(BaseModel):
     nome: Mapped[str] = mapped_column(String(255))
 
     def __repr__(self):
-        return f"SH6: código = {self.codigo}, nome = {self.nome}."
+        return f"SH6: código = {self.codigo!r}, nome = {self.nome!r}."
