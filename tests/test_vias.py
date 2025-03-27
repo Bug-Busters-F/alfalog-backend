@@ -2,8 +2,6 @@
 
 import pytest
 
-from src.vias.model import ViaModel
-
 
 url = "/api/vias/"
 
@@ -18,8 +16,7 @@ def test_get_vias_empty(client):
 @pytest.mark.dependency(name="create_via")
 def test_create_via(client) -> int:
     """Test Create a new valid entry is successful."""
-    data = {"nome": "Via Test", "codigo": "1234"}
-    response = client.post(url, json=data)
+    response = create_via(client)
 
     assert response.status_code == 201
     assert "id" in response.json["data"]
@@ -30,9 +27,7 @@ def test_create_via(client) -> int:
 @pytest.mark.dependency(depends=["create_via"])
 def test_get_vias_with_data(client):
     """Test Retrieve all entries when database has data is successful."""
-    # Create a Via entry
-    data = {"nome": "Via Test", "codigo": "1234"}
-    client.post(url, json=data)  # Creating the entry
+    create_via(client)
 
     # Retrieve all Vias
     response = client.get(url)
@@ -48,9 +43,8 @@ def test_get_vias_with_data(client):
 
 def test_create_duplicate_via(client):
     """Test Create an entry with an existing codigo fails."""
-    data = {"nome": "Via Test", "codigo": "1234"}
-    client.post(url, json=data)
-    response = client.post(url, json=data)
+    create_via(client)
+    response = create_via(client)
 
     assert response.status_code == 422
     assert response.json["message"] == "Já existe uma Via com esse código."
@@ -66,7 +60,7 @@ def test_create_duplicate_via(client):
 )
 def test_create_via_missing_fields(client, payload, missing_field):
     """Test Create an entry with missing nome or codigo fails."""
-    response = client.post(url, json=payload)
+    response = create_via(client, data=payload)
 
     assert response.status_code == 400
     assert "message" in response.json
@@ -80,8 +74,7 @@ def test_get_existing_via(client):
     Test Retrieve a valid entry by ID is successful.
     Depends on test_create_via.
     """
-    data = {"nome": "Via Test", "codigo": "1234"}
-    via = client.post(url, json=data).json["data"]
+    via = create_via(client).json["data"]
 
     response = client.get(f"{url}{via["id"]}")
 
@@ -105,8 +98,7 @@ def test_update_via_with_different_codigo(client):
     Test Update an existing entry with a different codigo is successful.
     Depends on test_create_via and test_get_existing_via.
     """
-    data = {"nome": "Via Test", "codigo": "1234"}
-    via = client.post(url, json=data).json["data"]
+    via = create_via(client).json["data"]
 
     response = client.put(
         f"{url}{via['id']}", json={"nome": "Updated", "codigo": "5678"}
@@ -126,8 +118,7 @@ def test_update_via_with_same_codigo(client):
     Test Update an existing entry with the original codigo is successful.
     Depends on test_create_via and test_get_existing_via.
     """
-    data = {"nome": "Via Test", "codigo": "1234"}
-    via = client.post(url, json=data).json["data"]
+    via = create_via(client).json["data"]
 
     response = client.put(
         f"{url}{via['id']}", json={"nome": "Updated", "codigo": "1234"}
@@ -144,7 +135,7 @@ def test_update_via_with_same_codigo(client):
 def test_update_nonexistent_via(client):
     """Test updating a non-existent Via fails."""
     non_existent_id = 9999
-    data = {"nome": "Updated Name", "codigo": "5678"}
+    data = make_via_data()
 
     response = client.put(f"{url}{non_existent_id}", json=data)
 
@@ -160,13 +151,12 @@ def test_update_via_with_existing_codigo(client):
     data1 = {"nome": "Via One", "codigo": "1111"}
     data2 = {"nome": "Via Two", "codigo": "2222"}
 
-    via1 = client.post(url, json=data1).json["data"]
-    via2 = client.post(url, json=data2).json["data"]
+    via1 = create_via(client, data=data1).json["data"]
+    via2 = create_via(client, data=data2).json["data"]
 
     # Attempt to update Via2 with Via1's codigo
-    response = client.put(
-        f"{url}{via2["id"]}", json={"nome": "Updated Via", "codigo": "1111"}
-    )
+    via2["codigo"] = via1["codigo"]
+    response = client.put(f"{url}{via2["id"]}", json=via2)
 
     assert response.status_code == 422
     assert response.json["message"] == "Já existe uma Via com esse código."
@@ -176,9 +166,7 @@ def test_update_via_with_existing_codigo(client):
 def test_delete_existing_via(client):
     """Test deleting an existing Via is successful."""
 
-    # Create a Via
-    data = {"nome": "Via to Delete", "codigo": "9999"}
-    via = client.post(url, json=data).json["data"]
+    via = create_via(client).json["data"]
 
     # Delete the created Via
     response = client.delete(f"{url}{via["id"]}")
@@ -199,3 +187,13 @@ def test_delete_nonexistent_via(client):
 
     assert response.status_code == 404
     assert response.json["message"] == "Nenhum registro encontrado."
+
+
+def make_via_data() -> dict:
+    """Make an object of data for body requests."""
+    return {"nome": "Via Test", "codigo": "1234"}
+
+
+def create_via(client, data=make_via_data()) -> dict:
+    """Create an entry in the database."""
+    return client.post(url, json=data)
