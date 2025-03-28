@@ -1,200 +1,172 @@
-## Tests for NCM Collection
-
 import pytest
-
+from src.ncms.model import NCMModel
+from faker import Faker
 
 url = "/api/ncms/"
+fake = Faker("pt_BR")
 
 
-def test_get_ncms_empty(client):
-    """Test Retrieve all entries when database is empty is successful."""
-    response = client.get(url)
-    assert response.status_code == 200
-    assert response.json == []
+def make_ncm_data():
+    return {
+        "codigo": fake.unique.bothify(text="########"),
+        "descricao": fake.sentence(nb_words=5, variable_nb_words=True),
+    }
 
 
-@pytest.mark.dependency(name="create_ncm")
-def test_create_ncm(client) -> int:
-    """Test Create a new valid entry is successful."""
-    response = create_ncm(client)
-
-    assert response.status_code == 201
-    assert "id" in response.json["data"]
-    assert response.json["data"]["codigo"] == "1234"
-    assert response.json["data"]["descricao"] == "NCM Test"
+def create_ncm_db(session, data=None) -> NCMModel:
+    """Create test NCM record"""
+    data = data or make_ncm_data()
+    ncm = NCMModel(**data)
+    session.add(ncm)
+    session.commit()
+    return ncm
 
 
-@pytest.mark.dependency(depends=["create_ncm"])
-def test_get_ncms_with_data(client):
-    """Test Retrieve all entries when database has data is successful."""
-    create_ncm(client)
+class TestNCMCollection:
+    def test_get_empty(self, client):
+        """Test retrieving all entries when database is empty"""
+        response = client.get(url)
+        assert response.status_code == 200
+        assert response.json == []
 
-    # Retrieve all NCMs
-    response = client.get(url)
+    def test_list_with_data(self, client, session):
+        """Test retrieving all entries when database has data"""
+        created_ncm = create_ncm_db(session)
 
-    assert response.status_code == 200
-    assert isinstance(response.json, list)
-    assert len(response.json) > 0
-    assert any(
-        ncm["data"]["codigo"] == "1234" and ncm["data"]["descricao"] == "NCM Test"
-        for ncm in response.json
+        response = client.get(url)
+        assert response.status_code == 200
+        assert isinstance(response.json, list)
+        assert len(response.json) > 0
+
+        listed_ncm = response.json[0]["data"]
+        assert listed_ncm["id"] == created_ncm.id
+        assert listed_ncm["descricao"] == created_ncm.descricao
+
+    def test_create_valid(self, client, session):
+        """Test creating a valid NCM"""
+        ncm_data = make_ncm_data()
+        response = client.post(url, json=ncm_data)
+
+        assert response.status_code == 201
+        assert response.json["data"]["codigo"] == ncm_data["codigo"]
+        assert response.json["data"]["descricao"] == ncm_data["descricao"]
+        assert isinstance(response.json["data"]["id"], int)
+
+        # Verify database
+        db_ncm = (
+            session.query(NCMModel).filter_by(id=response.json["data"]["id"]).first()
+        )
+        assert db_ncm is not None
+        assert db_ncm.codigo == ncm_data["codigo"]
+
+    def test_create_duplicate(self, client, session):
+        """Test creating duplicate NCM fails"""
+        ncm_data = make_ncm_data()
+        create_ncm_db(session, ncm_data)
+        response = client.post(url, json=ncm_data)
+
+        assert response.status_code == 422
+        assert "Já existe um NCM com esse código" in response.json["message"]
+
+    @pytest.mark.parametrize(
+        "payload, missing_field",
+        [
+            ({"codigo": "12345678"}, "descricao"),
+            ({"descricao": "Descrição Teste"}, "codigo"),
+            ({}, "codigo"),
+        ],
     )
+    def test_create_missing_fields(self, client, payload, missing_field, session):
+        """Test validation for missing required fields"""
+        response = client.post(url, json=payload)
+
+        assert response.status_code == 400
+        assert "message" in response.json
+        assert missing_field in response.json["message"]
 
 
-def test_create_duplicate_ncm(client):
-    """Test Create an entry with an existing codigo fails."""
-    create_ncm(client)
-    response = create_ncm(client)
+class TestNCMResource:
+    """Tests for single NCM resource endpoints (/api/ncms/<id>)"""
 
-    assert response.status_code == 422
-    assert response.json["message"] == "Já existe uma NCM com esse código."
+    @pytest.fixture
+    def existing_ncm(self, session) -> NCMModel:
+        """Fixture providing an existing NCM"""
+        return create_ncm_db(session)
 
+    def test_get_existing(self, client, existing_ncm):
+        """Test getting an existing NCM"""
+        response = client.get(f"{url}{existing_ncm.id}")
 
-@pytest.mark.parametrize(
-    "payload, missing_field",
-    [
-        ({"descricao": "NCM Test"}, "codigo"),
-        ({"codigo": "1234"}, "descricao"),
-        ({}, "codigo"),
-    ],
-)
-def test_create_ncm_missing_fields(client, payload, missing_field):
-    """Test Create an entry with missing nome or codigo fails."""
-    response = create_ncm(client, data=payload)
+        assert response.status_code == 200
+        assert response.json["data"]["id"] == existing_ncm.id
+        assert response.json["data"]["codigo"] == existing_ncm.codigo
+        assert response.json["data"]["descricao"] == existing_ncm.descricao
 
-    assert response.status_code == 400
-    assert "message" in response.json
-    assert missing_field in response.json["message"]
+    def test_get_nonexistent(self, client):
+        """Test getting non-existent NCM"""
+        response = client.get(f"{url}9999")
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]
 
+    def test_update_same_codigo(self, client, existing_ncm, session):
+        """Test updating with same codigo"""
+        update_data = {
+            "codigo": existing_ncm.codigo,
+            "descricao": "Descrição Atualizada",
+        }
+        response = client.put(f"{url}{existing_ncm.id}", json=update_data)
+        assert response.status_code == 204
 
-## Tests for NCM
-@pytest.mark.dependency(name="get_ncm", depends=["create_ncm"])
-def test_get_existing_ncm(client):
-    """
-    Test Retrieve a valid entry by ID is successful.
-    Depends on testcreate_ncm.
-    """
-    ncm = create_ncm(client).json["data"]
+        # Verify update
+        session.refresh(existing_ncm)
+        assert existing_ncm.codigo == update_data["codigo"]
+        assert existing_ncm.descricao == update_data["descricao"]
 
-    response = client.get(f"{url}{ncm["id"]}")
+    def test_update_different_codigo(self, client, existing_ncm, session):
+        """Test updating with different codigo"""
+        update_data = {
+            "codigo": "87654321",
+            "descricao": "Descrição Atualizada",
+        }
+        response = client.put(f"{url}{existing_ncm.id}", json=update_data)
+        assert response.status_code == 204
 
-    assert response.status_code == 200
-    assert response.json["data"]["id"] == ncm["id"]
-    assert response.json["data"]["codigo"] == "1234"
-    assert response.json["data"]["descricao"] == "NCM Test"
+        # Verify update
+        session.refresh(existing_ncm)
+        assert existing_ncm.codigo == update_data["codigo"]
+        assert existing_ncm.descricao == update_data["descricao"]
 
+    def test_update_nonexistent(self, client):
+        """Test updating non-existent NCM"""
+        response = client.put(f"{url}9999", json=make_ncm_data())
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]
 
-def test_get_nonexistent_ncm(client):
-    """Test Retrieve a non-existent entry is successful."""
-    response = client.get(f"{url}999")
+    def test_update_existent_codigo(self, client, existing_ncm, session):
+        """Test updating with existing codigo fails"""
+        data = {
+            "codigo": "11112222",
+            "descricao": "Outro NCM",
+        }
+        ncm2 = create_ncm_db(session, data)
 
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
+        data["codigo"] = existing_ncm.codigo
+        response = client.put(f"{url}{ncm2.id}", json=data)
 
+        assert response.status_code == 422
+        assert "Já existe um NCM com esse código" in response.json["message"]
 
-@pytest.mark.dependency(depends=["create_ncm", "get_ncm"])
-def test_update_ncm_with_different_codigo(client):
-    """
-    Test Update an existing entry with a different codigo is successful.
-    Depends on testcreate_ncm and test_get_existing_ncm.
-    """
-    ncm = create_ncm(client).json["data"]
+    def test_delete_existing(self, client, existing_ncm, session):
+        """Test deleting existing NCM"""
+        response = client.delete(f"{url}{existing_ncm.id}")
+        assert response.status_code == 204
 
-    response = client.put(
-        f"{url}{ncm['id']}", json={"codigo": "5678", "descricao": "Updated"}
-    )
+        # Verify deletion
+        assert session.get(NCMModel, existing_ncm.id) is None
 
-    updated_ncm = client.get(f"{url}{ncm["id"]}").json["data"]
-    assert response.status_code == 204
-    assert response.data == b""
-    assert updated_ncm["id"] == ncm["id"]
-    assert updated_ncm["codigo"] == "5678"
-    assert updated_ncm["descricao"] == "Updated"
+    def test_delete_nonexistent(self, client):
+        """Test deleting non-existent NCM"""
+        response = client.delete(f"{url}9999")
 
-
-@pytest.mark.dependency(depends=["create_ncm", "get_ncm"])
-def test_update_ncm_with_same_codigo(client):
-    """
-    Test Update an existing entry with the original codigo is successful.
-    Depends on testcreate_ncm and test_get_existing_ncm.
-    """
-    ncm = create_ncm(client).json["data"]
-
-    response = client.put(
-        f"{url}{ncm['id']}", json={"codigo": ncm["codigo"], "descricao": "Updated"}
-    )
-
-    updated_ncm = client.get(f"{url}{ncm["id"]}").json["data"]
-    assert response.status_code == 204
-    assert response.data == b""
-    assert updated_ncm["id"] == ncm["id"]
-    assert updated_ncm["codigo"] == "1234"
-    assert updated_ncm["descricao"] == "Updated"
-
-
-def test_update_nonexistent_ncm(client):
-    """Test updating a non-existent NCM fails."""
-    non_existent_id = 9999
-    data = make_ncm_data()
-
-    response = client.put(f"{url}{non_existent_id}", json=data)
-
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
-
-
-@pytest.mark.dependency(depends=["create_ncm"])
-def test_update_ncm_with_existing_codigo(client):
-    """Test updating a NCM with a codigo fails."""
-
-    # Create two NCMs
-    data1 = {"codigo": "1111", "descricao": "NCM One"}
-    data2 = {"codigo": "2222", "descricao": "NCM Two"}
-
-    ncm1 = create_ncm(client, data=data1).json["data"]
-    ncm2 = create_ncm(client, data=data2).json["data"]
-
-    # Attempt to update NCM2 with NCM1's codigo
-    ncm2["codigo"] = ncm1["codigo"]
-    response = client.put(f"{url}{ncm2["id"]}", json=ncm2)
-
-    assert response.status_code == 422
-    assert response.json["message"] == "Já existe uma NCM com esse código."
-
-
-@pytest.mark.dependency(depends=["create_ncm"])
-def test_delete_existing_ncm(client):
-    """Test deleting an existing NCM is successful."""
-
-    # Create a NCM
-    ncm = create_ncm(client).json["data"]
-
-    # Delete the created NCM
-    response = client.delete(f"{url}{ncm["id"]}")
-
-    assert response.status_code == 204
-    assert response.data == b""
-
-    # Try retrieving it to confirm deletion
-    get_response = client.get(f"{url}{ncm["id"]}")
-    assert get_response.status_code == 404
-
-
-def test_delete_nonexistent_ncm(client):
-    """Test deleting a non-existent NCM fails."""
-
-    non_existent_id = 9999
-    response = client.delete(f"{url}{non_existent_id}")
-
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
-
-
-def make_ncm_data() -> dict:
-    """Make an object of data for body requests."""
-    return {"codigo": "1234", "descricao": "NCM Test"}
-
-
-def create_ncm(client, data=make_ncm_data()) -> dict:
-    """Create an entry in the database."""
-    return client.post(url, json=data)
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]
