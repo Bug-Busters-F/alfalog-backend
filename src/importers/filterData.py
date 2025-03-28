@@ -1,7 +1,10 @@
 import pandas as pd
 from tqdm import tqdm
 from flask_sqlalchemy import SQLAlchemy
-from models import UF, NCM, Pais, Transacao
+from src.ufs.model import UFModel as UF
+from src.ncms.model import NCMModel as NCM
+from src.paises.model import PaisModel as Pais
+from src.transacoes.model import TransacaoModel as Transacao
 
 BASE_URL = "https://balanca.economia.gov.br/balanca/bd/comexstat-bd/ncm/"
 YEARS = range(2014, 2025)
