@@ -2,8 +2,6 @@
 
 import pytest
 
-from src.sh4s.model import SH4Model
-
 
 url = "/api/sh4s/"
 
@@ -18,8 +16,7 @@ def test_get_sh4s_empty(client):
 @pytest.mark.dependency(name="create_sh4")
 def test_create_sh4(client) -> int:
     """Test Create a new valid entry is successful."""
-    data = {"nome": "SH4 Test", "codigo": "1234"}
-    response = client.post(url, json=data)
+    response = create_sh4(client)
 
     assert response.status_code == 201
     assert "id" in response.json["data"]
@@ -31,8 +28,7 @@ def test_create_sh4(client) -> int:
 def test_get_sh4s_with_data(client):
     """Test Retrieve all entries when database has data is successful."""
     # Create a SH4 entry
-    data = {"nome": "SH4 Test", "codigo": "1234"}
-    client.post(url, json=data)  # Creating the entry
+    create_sh4(client)
 
     # Retrieve all SH4s
     response = client.get(url)
@@ -48,9 +44,8 @@ def test_get_sh4s_with_data(client):
 
 def test_create_duplicate_sh4(client):
     """Test Create an entry with an existing codigo fails."""
-    data = {"nome": "SH4 Test", "codigo": "1234"}
-    client.post(url, json=data)
-    response = client.post(url, json=data)
+    create_sh4(client)
+    response = create_sh4(client)
 
     assert response.status_code == 422
     assert response.json["message"] == "Já existe uma SH4 com esse código."
@@ -66,7 +61,7 @@ def test_create_duplicate_sh4(client):
 )
 def test_create_sh4_missing_fields(client, payload, missing_field):
     """Test Create an entry with missing nome or codigo fails."""
-    response = client.post(url, json=payload)
+    response = create_sh4(client, data=payload)
 
     assert response.status_code == 400
     assert "message" in response.json
@@ -80,8 +75,7 @@ def test_get_existing_sh4(client):
     Test Retrieve a valid entry by ID is successful.
     Depends on test_create_sh4.
     """
-    data = {"nome": "SH4 Test", "codigo": "1234"}
-    sh4 = client.post(url, json=data).json["data"]
+    sh4 = create_sh4(client).json["data"]
 
     response = client.get(f"{url}{sh4["id"]}")
 
@@ -105,8 +99,7 @@ def test_update_sh4_with_different_codigo(client):
     Test Update an existing entry with a different codigo is successful.
     Depends on test_create_sh4 and test_get_existing_sh4.
     """
-    data = {"nome": "SH4 Test", "codigo": "1234"}
-    sh4 = client.post(url, json=data).json["data"]
+    sh4 = create_sh4(client).json["data"]
 
     response = client.put(
         f"{url}{sh4['id']}", json={"nome": "Updated", "codigo": "5678"}
@@ -126,11 +119,10 @@ def test_update_sh4_with_same_codigo(client):
     Test Update an existing entry with the original codigo is successful.
     Depends on test_create_sh4 and test_get_existing_sh4.
     """
-    data = {"nome": "SH4 Test", "codigo": "1234"}
-    sh4 = client.post(url, json=data).json["data"]
+    sh4 = create_sh4(client).json["data"]
 
     response = client.put(
-        f"{url}{sh4['id']}", json={"nome": "Updated", "codigo": "1234"}
+        f"{url}{sh4['id']}", json={"nome": "Updated", "codigo": sh4["codigo"]}
     )
 
     updated_sh4 = client.get(f"{url}{sh4["id"]}").json["data"]
@@ -144,7 +136,7 @@ def test_update_sh4_with_same_codigo(client):
 def test_update_nonexistent_sh4(client):
     """Test updating a non-existent SH4 fails."""
     non_existent_id = 9999
-    data = {"nome": "SH4 Test", "codigo": "1234"}
+    data = make_sh4_data()
 
     response = client.put(f"{url}{non_existent_id}", json=data)
 
@@ -160,10 +152,11 @@ def test_update_sh4_with_existing_codigo(client):
     data1 = {"nome": "SH4 One", "codigo": "1111"}
     data2 = {"nome": "SH4 Two", "codigo": "2222"}
 
-    sh41 = client.post(url, json=data1).json["data"]
-    sh42 = client.post(url, json=data2).json["data"]
+    sh41 = create_sh4(client, data=data1).json["data"]
+    sh42 = create_sh4(client, data=data2).json["data"]
 
     # Attempt to update SH42 with SH41's codigo
+    sh42["codigo"] = sh41["codigo"]
     response = client.put(
         f"{url}{sh42["id"]}", json={"nome": "Updated SH4", "codigo": "1111"}
     )
@@ -177,8 +170,7 @@ def test_delete_existing_sh4(client):
     """Test deleting an existing SH4 is successful."""
 
     # Create a SH4
-    data = {"nome": "SH4 Test", "codigo": "1234"}
-    sh4 = client.post(url, json=data).json["data"]
+    sh4 = create_sh4(client).json["data"]
 
     # Delete the created SH4
     response = client.delete(f"{url}{sh4["id"]}")
@@ -199,3 +191,13 @@ def test_delete_nonexistent_sh4(client):
 
     assert response.status_code == 404
     assert response.json["message"] == "Nenhum registro encontrado."
+
+
+def make_sh4_data() -> dict:
+    """Make an object of data for body requests."""
+    return {"nome": "SH4 Test", "codigo": "1234"}
+
+
+def create_sh4(client, data=make_sh4_data()) -> dict:
+    """Create an entry in the database."""
+    return client.post(url, json=data)

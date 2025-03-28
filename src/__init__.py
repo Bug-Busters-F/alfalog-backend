@@ -90,3 +90,9 @@ def add_resources(api: Api) -> None:
 
     api.add_resource(NCMs, "/api/ncms", "/api/ncms/")
     api.add_resource(NCM, "/api/ncms/<int:id>")
+
+    # Transacao resources
+    from src.transacoes.resources import Transacoes, Transacao
+
+    api.add_resource(Transacoes, "/api/transacoes", "/api/transacoes/")
+    api.add_resource(Transacao, "/api/transacoes/<int:id>")

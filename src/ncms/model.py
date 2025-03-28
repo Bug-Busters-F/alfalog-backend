@@ -1,6 +1,7 @@
 from src.core.base import BaseModel
+from typing import List
 from sqlalchemy import Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 class NCMModel(BaseModel):
@@ -12,5 +13,10 @@ class NCMModel(BaseModel):
     codigo: Mapped[str] = mapped_column(String(31), unique=True)
     descricao: Mapped[str] = mapped_column(String(255))
 
+    # FK
+    transacoes: Mapped[List["TransacaoModel"]] = relationship(
+        back_populates="ncm", cascade="all, delete-orphan"
+    )
+
     def __repr__(self):
-        return f"Nomenclatura Comum do Mercosul: código = {self.codigo}, descrição = {self.descricao}."
+        return f"Nomenclatura Comum do Mercosul: código = {self.codigo!r}, descrição = {self.descricao!r}."

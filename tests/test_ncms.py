@@ -2,8 +2,6 @@
 
 import pytest
 
-from src.ncms.model import NCMModel
-
 
 url = "/api/ncms/"
 
@@ -18,8 +16,7 @@ def test_get_ncms_empty(client):
 @pytest.mark.dependency(name="create_ncm")
 def test_create_ncm(client) -> int:
     """Test Create a new valid entry is successful."""
-    data = {"codigo": "1234", "descricao": "NCM Test"}
-    response = client.post(url, json=data)
+    response = create_ncm(client)
 
     assert response.status_code == 201
     assert "id" in response.json["data"]
@@ -30,9 +27,7 @@ def test_create_ncm(client) -> int:
 @pytest.mark.dependency(depends=["create_ncm"])
 def test_get_ncms_with_data(client):
     """Test Retrieve all entries when database has data is successful."""
-    # Create a NCM entry
-    data = {"codigo": "1234", "descricao": "NCM Test"}
-    client.post(url, json=data)  # Creating the entry
+    create_ncm(client)
 
     # Retrieve all NCMs
     response = client.get(url)
@@ -48,9 +43,8 @@ def test_get_ncms_with_data(client):
 
 def test_create_duplicate_ncm(client):
     """Test Create an entry with an existing codigo fails."""
-    data = {"codigo": "1234", "descricao": "NCM Test"}
-    client.post(url, json=data)
-    response = client.post(url, json=data)
+    create_ncm(client)
+    response = create_ncm(client)
 
     assert response.status_code == 422
     assert response.json["message"] == "Já existe uma NCM com esse código."
@@ -66,7 +60,7 @@ def test_create_duplicate_ncm(client):
 )
 def test_create_ncm_missing_fields(client, payload, missing_field):
     """Test Create an entry with missing nome or codigo fails."""
-    response = client.post(url, json=payload)
+    response = create_ncm(client, data=payload)
 
     assert response.status_code == 400
     assert "message" in response.json
@@ -78,10 +72,9 @@ def test_create_ncm_missing_fields(client, payload, missing_field):
 def test_get_existing_ncm(client):
     """
     Test Retrieve a valid entry by ID is successful.
-    Depends on test_create_ncm.
+    Depends on testcreate_ncm.
     """
-    data = {"codigo": "1234", "descricao": "NCM Test"}
-    ncm = client.post(url, json=data).json["data"]
+    ncm = create_ncm(client).json["data"]
 
     response = client.get(f"{url}{ncm["id"]}")
 
@@ -103,10 +96,9 @@ def test_get_nonexistent_ncm(client):
 def test_update_ncm_with_different_codigo(client):
     """
     Test Update an existing entry with a different codigo is successful.
-    Depends on test_create_ncm and test_get_existing_ncm.
+    Depends on testcreate_ncm and test_get_existing_ncm.
     """
-    data = {"codigo": "1234", "descricao": "NCM Test"}
-    ncm = client.post(url, json=data).json["data"]
+    ncm = create_ncm(client).json["data"]
 
     response = client.put(
         f"{url}{ncm['id']}", json={"codigo": "5678", "descricao": "Updated"}
@@ -124,13 +116,12 @@ def test_update_ncm_with_different_codigo(client):
 def test_update_ncm_with_same_codigo(client):
     """
     Test Update an existing entry with the original codigo is successful.
-    Depends on test_create_ncm and test_get_existing_ncm.
+    Depends on testcreate_ncm and test_get_existing_ncm.
     """
-    data = {"codigo": "1234", "descricao": "NCM Test"}
-    ncm = client.post(url, json=data).json["data"]
+    ncm = create_ncm(client).json["data"]
 
     response = client.put(
-        f"{url}{ncm['id']}", json={"codigo": "1234", "descricao": "Updated"}
+        f"{url}{ncm['id']}", json={"codigo": ncm["codigo"], "descricao": "Updated"}
     )
 
     updated_ncm = client.get(f"{url}{ncm["id"]}").json["data"]
@@ -144,7 +135,7 @@ def test_update_ncm_with_same_codigo(client):
 def test_update_nonexistent_ncm(client):
     """Test updating a non-existent NCM fails."""
     non_existent_id = 9999
-    data = {"codigo": "1234", "descricao": "NCM Test"}
+    data = make_ncm_data()
 
     response = client.put(f"{url}{non_existent_id}", json=data)
 
@@ -160,13 +151,12 @@ def test_update_ncm_with_existing_codigo(client):
     data1 = {"codigo": "1111", "descricao": "NCM One"}
     data2 = {"codigo": "2222", "descricao": "NCM Two"}
 
-    ncm1 = client.post(url, json=data1).json["data"]
-    ncm2 = client.post(url, json=data2).json["data"]
+    ncm1 = create_ncm(client, data=data1).json["data"]
+    ncm2 = create_ncm(client, data=data2).json["data"]
 
     # Attempt to update NCM2 with NCM1's codigo
-    response = client.put(
-        f"{url}{ncm2["id"]}", json={"codigo": "1111", "descricao": "Updated NCM"}
-    )
+    ncm2["codigo"] = ncm1["codigo"]
+    response = client.put(f"{url}{ncm2["id"]}", json=ncm2)
 
     assert response.status_code == 422
     assert response.json["message"] == "Já existe uma NCM com esse código."
@@ -177,8 +167,7 @@ def test_delete_existing_ncm(client):
     """Test deleting an existing NCM is successful."""
 
     # Create a NCM
-    data = {"codigo": "1234", "descricao": "NCM Test"}
-    ncm = client.post(url, json=data).json["data"]
+    ncm = create_ncm(client).json["data"]
 
     # Delete the created NCM
     response = client.delete(f"{url}{ncm["id"]}")
@@ -199,3 +188,13 @@ def test_delete_nonexistent_ncm(client):
 
     assert response.status_code == 404
     assert response.json["message"] == "Nenhum registro encontrado."
+
+
+def make_ncm_data() -> dict:
+    """Make an object of data for body requests."""
+    return {"codigo": "1234", "descricao": "NCM Test"}
+
+
+def create_ncm(client, data=make_ncm_data()) -> dict:
+    """Create an entry in the database."""
+    return client.post(url, json=data)

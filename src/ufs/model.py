@@ -1,6 +1,7 @@
+from typing import List
 from src.core.base import BaseModel
 from sqlalchemy import Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 class UFModel(BaseModel):
@@ -14,5 +15,10 @@ class UFModel(BaseModel):
     sigla: Mapped[str] = mapped_column(String(255))
     nome_regiao: Mapped[str] = mapped_column(String(255))
 
+    # FK
+    transacoes: Mapped[List["TransacaoModel"]] = relationship(
+        back_populates="uf", cascade="all, delete-orphan"
+    )
+
     def __repr__(self):
-        return f"Unidade Federativa: código = {self.codigo}, nome = {self.nome}, sigla = {self.sigla}, nome da região = {self.nome_regiao}."
+        return f"Unidade Federativa: código = {self.codigo!r}, nome = {self.nome!r}, sigla = {self.sigla!r}, nome da região = {self.nome_regiao!r}."

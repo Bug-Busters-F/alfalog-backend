@@ -2,8 +2,6 @@
 
 import pytest
 
-from src.ues.model import UEModel
-
 
 url = "/api/ues/"
 
@@ -18,8 +16,7 @@ def test_get_ues_empty(client):
 @pytest.mark.dependency(name="create_ue")
 def test_create_ue(client) -> int:
     """Test Create a new valid entry is successful."""
-    data = {"nome": "UE Test", "codigo": "1234", "abreviacao": "UT"}
-    response = client.post(url, json=data)
+    response = create_ue(client)
 
     assert response.status_code == 201
     assert "id" in response.json["data"]
@@ -31,9 +28,7 @@ def test_create_ue(client) -> int:
 @pytest.mark.dependency(depends=["create_ue"])
 def test_get_ues_with_data(client):
     """Test Retrieve all entries when database has data is successful."""
-    # Create a UE entry
-    data = {"nome": "UE Test", "codigo": "1234", "abreviacao": "UT"}
-    client.post(url, json=data)  # Creating the entry
+    create_ue(client)
 
     # Retrieve all UEs
     response = client.get(url)
@@ -51,9 +46,8 @@ def test_get_ues_with_data(client):
 
 def test_create_duplicate_ue(client):
     """Test Create an entry with an existing codigo fails."""
-    data = {"nome": "UE Test", "codigo": "1234", "abreviacao": "UT"}
-    client.post(url, json=data)
-    response = client.post(url, json=data)
+    create_ue(client)
+    response = create_ue(client)
 
     assert response.status_code == 422
     assert response.json["message"] == "Já existe uma UE com esse código."
@@ -70,7 +64,7 @@ def test_create_duplicate_ue(client):
 )
 def test_create_ue_missing_fields(client, payload, missing_field):
     """Test Create an entry with missing nome or codigo fails."""
-    response = client.post(url, json=payload)
+    response = create_ue(client, data=payload)
 
     assert response.status_code == 400
     assert "message" in response.json
@@ -84,8 +78,7 @@ def test_get_existing_ue(client):
     Test Retrieve a valid entry by ID is successful.
     Depends on test_create_ue.
     """
-    data = {"nome": "UE Test", "codigo": "1234", "abreviacao": "UT"}
-    ue = client.post(url, json=data).json["data"]
+    ue = create_ue(client).json["data"]
 
     response = client.get(f"{url}{ue["id"]}")
 
@@ -110,8 +103,7 @@ def test_update_ue_with_different_codigo(client):
     Test Update an existing entry with a different codigo is successful.
     Depends on test_create_ue and test_get_existing_ue.
     """
-    data = {"nome": "UE Test", "codigo": "1234", "abreviacao": "UT"}
-    ue = client.post(url, json=data).json["data"]
+    ue = create_ue(client).json["data"]
 
     response = client.put(
         f"{url}{ue['id']}",
@@ -133,12 +125,15 @@ def test_update_ue_with_same_codigo(client):
     Test Update an existing entry with the original codigo is successful.
     Depends on test_create_ue and test_get_existing_ue.
     """
-    data = {"nome": "UE Test", "codigo": "1234", "abreviacao": "UT"}
-    ue = client.post(url, json=data).json["data"]
+    ue = create_ue(client).json["data"]
 
     response = client.put(
         f"{url}{ue['id']}",
-        json={"nome": "Updated", "codigo": "1234", "abreviacao": "UT2"},
+        json={
+            "nome": "Updated",
+            "codigo": ue["codigo"],
+            "abreviacao": ue["abreviacao"],
+        },
     )
 
     updated_ue = client.get(f"{url}{ue["id"]}").json["data"]
@@ -146,14 +141,14 @@ def test_update_ue_with_same_codigo(client):
     assert response.data == b""
     assert updated_ue["id"] == ue["id"]
     assert updated_ue["nome"] == "Updated"
-    assert updated_ue["codigo"] == "1234"
-    assert updated_ue["abreviacao"] == "UT2"
+    assert updated_ue["codigo"] == ue["codigo"]
+    assert updated_ue["abreviacao"] == ue["abreviacao"]
 
 
 def test_update_nonexistent_ue(client):
     """Test updating a non-existent UE fails."""
     non_existent_id = 9999
-    data = {"nome": "UE Test", "codigo": "1234", "abreviacao": "UT"}
+    data = make_ue_data()
 
     response = client.put(f"{url}{non_existent_id}", json=data)
 
@@ -169,14 +164,16 @@ def test_update_ue_with_existing_codigo(client):
     data1 = {"nome": "UE One", "codigo": "1111", "abreviacao": "UT1"}
     data2 = {"nome": "UE Two", "codigo": "2222", "abreviacao": "UT2"}
 
-    ue1 = client.post(url, json=data1).json["data"]
-    ue2 = client.post(url, json=data2).json["data"]
+    ue1 = create_ue(client, data=data1).json["data"]
+    ue2 = create_ue(client, data=data2).json["data"]
 
     # Attempt to update UE2 with UE1's codigo
+    ue2["codigo"] = ue1["codigo"]
     response = client.put(
         f"{url}{ue2["id"]}",
-        json={"nome": "Updated UE", "codigo": "1111", "abreviacao": "UT2"},
+        json={"nome": "Update nome", "codigo": ue1["codigo"], "abreviacao": "UT2"},
     )
+    print(response)
 
     assert response.status_code == 422
     assert response.json["message"] == "Já existe uma UE com esse código."
@@ -187,8 +184,7 @@ def test_delete_existing_ue(client):
     """Test deleting an existing UE is successful."""
 
     # Create a UE
-    data = {"nome": "UE Test", "codigo": "1234", "abreviacao": "UT"}
-    ue = client.post(url, json=data).json["data"]
+    ue = create_ue(client).json["data"]
 
     # Delete the created UE
     response = client.delete(f"{url}{ue["id"]}")
@@ -209,3 +205,16 @@ def test_delete_nonexistent_ue(client):
 
     assert response.status_code == 404
     assert response.json["message"] == "Nenhum registro encontrado."
+
+
+#
+
+
+def make_ue_data() -> dict:
+    """Make an object of data for body requests."""
+    return {"nome": "UE Test", "codigo": "1234", "abreviacao": "UT"}
+
+
+def create_ue(client, data=make_ue_data()) -> dict:
+    """Create an entry in the database."""
+    return client.post(url, json=data)
