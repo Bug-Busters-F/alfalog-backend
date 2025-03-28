@@ -30,7 +30,7 @@ class Paises(BaseResource):
             self.db.session.query(PaisModel).filter_by(codigo=args["codigo"]).first()
         )
         if existing_entry:
-            return abort(422, message="Já existe uma Pais com esse código.")
+            return abort(422, message="Já existe um País com esse código.")
 
         entry = PaisModel(nome=args["nome"], codigo=args["codigo"])
         self.db.session.add(entry)
@@ -74,7 +74,7 @@ class Pais(BaseResource):
             self.db.session.query(PaisModel).filter_by(codigo=args["codigo"]).first()
         )
         if existing_entry and existing_entry.id != entry.id:
-            return abort(422, message="Já existe uma Pais com esse código.")
+            return abort(422, message="Já existe um País com esse código.")
 
         entry.nome = args["nome"]
         entry.codigo = args["codigo"]

@@ -30,7 +30,7 @@ class SH4s(BaseResource):
             self.db.session.query(SH4Model).filter_by(codigo=args["codigo"]).first()
         )
         if existing_entry:
-            return abort(422, message="Já existe uma SH4 com esse código.")
+            return abort(422, message="Já existe um SH4 com esse código.")
 
         entry = SH4Model(nome=args["nome"], codigo=args["codigo"])
         self.db.session.add(entry)
@@ -74,7 +74,7 @@ class SH4(BaseResource):
             self.db.session.query(SH4Model).filter_by(codigo=args["codigo"]).first()
         )
         if existing_entry and existing_entry.id != entry.id:
-            return abort(422, message="Já existe uma SH4 com esse código.")
+            return abort(422, message="Já existe um SH4 com esse código.")
 
         entry.nome = args["nome"]
         entry.codigo = args["codigo"]

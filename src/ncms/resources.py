@@ -30,7 +30,7 @@ class NCMs(BaseResource):
             self.db.session.query(NCMModel).filter_by(codigo=args["codigo"]).first()
         )
         if existing_entry:
-            return abort(422, message="Já existe uma NCM com esse código.")
+            return abort(422, message="Já existe um NCM com esse código.")
 
         entry = NCMModel(codigo=args["codigo"], descricao=args["descricao"])
         self.db.session.add(entry)
@@ -74,7 +74,7 @@ class NCM(BaseResource):
             self.db.session.query(NCMModel).filter_by(codigo=args["codigo"]).first()
         )
         if existing_entry and existing_entry.id != entry.id:
-            return abort(422, message="Já existe uma NCM com esse código.")
+            return abort(422, message="Já existe um NCM com esse código.")
 
         entry.codigo = args["codigo"]
         entry.descricao = args["descricao"]
