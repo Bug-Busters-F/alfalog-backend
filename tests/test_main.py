@@ -14,7 +14,7 @@ fake = Faker("pt_BR")
 
 
 class TestValorAgregadoRoute:
-    url = "/api/valor_agregado"
+    url = "/api/valor-agregado"
 
     def test_successful_calculation(self, client, session):
         """Test that returns correct valor_agregado calculation in descending order."""
@@ -45,12 +45,12 @@ class TestValorAgregadoRoute:
         )
 
         for result in results:
-            assert "id" in result
-            assert "valor_agregado" in result
-            assert "quantidade" in result
-            assert "peso" in result
-            assert "valor" in result
-            assert "uf_id" in result
+            assert result["id"] > 0
+            assert result["valor_agregado"] > 0
+            assert result["quantidade"] > 0
+            assert result["peso"] > 0
+            assert result["valor"] > 0
+            assert result["uf_id"] > 0
 
     def test_no_transactions_found(self, client, session):
         """Test when no transactions exist for the given filters"""

@@ -13,6 +13,7 @@ model_fields = {
         "quantidade": fields.Integer,
         "peso": fields.Integer,
         "valor": fields.Integer,
+        "valor_agregado": fields.Float,
         # FKs
         "ncm_id": fields.Integer,
         "ue_id": fields.Integer,
