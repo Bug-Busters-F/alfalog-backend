@@ -15,3 +15,17 @@ valor_agregado_args.add_argument(
     required=True,
     help="Um ano deve ser informado.",
 )
+
+cargas_movimentadas_args = reqparse.RequestParser()
+cargas_movimentadas_args.add_argument(
+    "uf_id",
+    type=int,
+    required=True,
+    help="ID da UF inválido.",
+)
+cargas_movimentadas_args.add_argument(
+    "ano",
+    type=int,
+    required=True,
+    help="Um ano deve ser informado.",
+)

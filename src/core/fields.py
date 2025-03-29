@@ -20,3 +20,10 @@ valor_agregado_fields = {
     "via_id": fields.Integer,
     "urf_id": fields.Integer,
 }
+
+cargas_movimentadas_fields = {
+    "id": fields.Integer,
+    "peso": fields.Integer,
+    # FKs
+    "ncm_id": fields.Integer,
+}
