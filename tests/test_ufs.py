@@ -8,9 +8,9 @@ fake = Faker("pt_BR")
 
 def make_uf_data():
     return {
-        "nome": fake.unique.state(),
-        "codigo": fake.unique.bothify(text="##"),
-        "sigla": fake.unique.bothify(text="??").upper(),
+        "nome": fake.state(),
+        "codigo": fake.bothify(text="##"),
+        "sigla": fake.bothify(text="??").upper(),
         "nome_regiao": fake.random_element(
             elements=("Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul")
         ),

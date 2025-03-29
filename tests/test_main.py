@@ -32,7 +32,7 @@ class TestValorAgregadoRoute:
         session.commit()
 
         response = client.post(
-            "/api/valor_agregado", json={"uf_id": trans1.uf.id, "ano": trans1.ano}
+            self.url, json={"uf_id": trans1.uf.id, "ano": trans1.ano}
         )
         results = response.json
 
@@ -51,6 +51,51 @@ class TestValorAgregadoRoute:
             assert "peso" in result
             assert "valor" in result
             assert "uf_id" in result
+
+    def test_no_transactions_found(self, client, session):
+        """Test when no transactions exist for the given filters"""
+        from tests.test_ufs import create_uf_db
+
+        uf = create_uf_db(session)
+
+        response = client.post(self.url, json={"uf_id": uf.id, "ano": 2025})
+
+        assert response.status_code == 200
+        assert response.json == []
+
+    def test_missing_required_parameters(self, client):
+        """Test error handling for missing parameters"""
+        # Missing uf_id
+        response = client.post(self.url, json={"ano": 2025})
+        assert response.status_code == 400
+
+        # Missing ano
+        response = client.post(self.url, json={"uf_id": 1})
+        assert response.status_code == 400
+
+        # Missing both
+        response = client.post(self.url, json={})
+        assert response.status_code == 400
+
+    def test_filter_by_year(self, client, session):
+        """Test that year filter works correctly"""
+        trans1 = create_transacao_db(session)
+        trans2 = create_transacao_db(session)
+        trans2.uf = trans1.uf
+        trans1.ano = 2024
+        trans2.ano = 2025
+
+        session.commit()
+
+        response = client.post(
+            self.url, json={"uf_id": trans1.uf.id, "ano": trans1.ano}
+        )
+
+        assert response.status_code == 200
+        assert len(response.json) == 1
+        assert response.json[0]["valor_agregado"] == round(
+            trans1.valor / trans1.peso, 2
+        )
 
 
 class TestCargasMovimentadasRoute:
