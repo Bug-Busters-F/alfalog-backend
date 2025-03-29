@@ -96,10 +96,26 @@ O primeiro passo é clonar o repositório do projeto para o seu ambiente local.
 
    1. Opcionalmente, você pode executar os comandos SQL em `database/seed.sql` diretamente no Banco de Dados para testes
 
-7. Execute o servidor Flask
+7. Caso queira, você pode importar os dados da base do COMEX executando o seguinte comando:
+
+    ```sh
+    flask comex update
+    # or
+    flask comex update --help # para conhecer as opções
+    ```
+
+8. Execute o servidor Flask
 
     ```sh
     flask run
     ```
 
-8. Abra em um navegador: [http://localhost:5000](http://localhost:5000)
+9.  Abra em um navegador: [http://localhost:5000](http://localhost:5000)
+
+---
+
+## Testes
+
+```sh
+pytest
+```

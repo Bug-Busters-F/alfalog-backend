@@ -1,7 +1,7 @@
 from src.core.base import BaseModel
 from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+from sqlalchemy import BigInteger
 from src.ncms.model import NCMModel
 from src.paises.model import PaisModel
 from src.ues.model import UEModel
@@ -20,9 +20,13 @@ class TransacaoModel(BaseModel):
     nome: Mapped[str] = mapped_column(String(255))
     ano: Mapped[int] = mapped_column(Integer)
     mes: Mapped[int] = mapped_column(Integer)
-    quantidade: Mapped[int] = mapped_column(Integer)
-    peso: Mapped[int] = mapped_column(Integer)
-    valor: Mapped[int] = mapped_column(Integer)
+    quantidade: Mapped[int] = mapped_column(BigInteger)
+    peso: Mapped[int] = mapped_column(BigInteger)
+    valor: Mapped[int] = mapped_column(BigInteger)
+    # quantidade: Mapped[int] = mapped_column(Integer) ## formato antigo caso seja removido os dados exagerados.
+    # peso: Mapped[int] = mapped_column(Integer)
+    # valor: Mapped[int] = mapped_column(Integer)
+
 
     # FKs
     ncm_id: Mapped[int] = mapped_column(ForeignKey(NCMModel.id, ondelete="CASCADE"))
