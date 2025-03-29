@@ -1,6 +1,6 @@
 from src.core.base import BaseModel
 from typing import List
-from sqlalchemy import Integer, String
+from sqlalchemy import Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
@@ -11,7 +11,7 @@ class NCMModel(BaseModel):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     codigo: Mapped[str] = mapped_column(String(31), unique=True)
-    descricao: Mapped[str] = mapped_column(String(255))
+    descricao: Mapped[str] = mapped_column(Text)
 
     # FK
     transacoes: Mapped[List["TransacaoModel"]] = relationship(

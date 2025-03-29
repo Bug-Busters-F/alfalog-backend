@@ -17,6 +17,8 @@ def create_app():
 
     api: Api = create_api(app)
 
+    register_cli_commands(app)
+
     register_blueprints(app)
 
     # Add API resources.
@@ -30,6 +32,13 @@ def create_api(app: Flask) -> Api:
     api = Api(app)
 
     return api
+
+
+def register_cli_commands(app: Flask) -> None:
+    """Register CLI commands."""
+    from src.importers.comex import comex
+
+    app.cli.add_command(comex)
 
 
 def register_blueprints(app: Flask) -> None:
