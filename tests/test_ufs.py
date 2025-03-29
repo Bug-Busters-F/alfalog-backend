@@ -1,245 +1,191 @@
-## Tests for UF Collection
-
 import pytest
-
+from faker import Faker
+from src.ufs.model import UFModel
 
 url = "/api/ufs/"
+fake = Faker("pt_BR")
 
 
-def test_get_ufs_empty(client):
-    """Test Retrieve all entries when database is empty is successful."""
-    response = client.get(url)
-    assert response.status_code == 200
-    assert response.json == []
-
-
-@pytest.mark.dependency(name="create_uf")
-def test_create_uf(client) -> int:
-    """Test Create a new valid entry is successful."""
-    response = create_uf(client)
-
-    assert response.status_code == 201
-    assert "id" in response.json["data"]
-    assert response.json["data"]["nome"] == "UF Test"
-    assert response.json["data"]["codigo"] == "1234"
-    assert response.json["data"]["sigla"] == "UF"
-    assert response.json["data"]["nome_regiao"] == "REG"
-
-
-@pytest.mark.dependency(depends=["create_uf"])
-def test_get_ufs_with_data(client):
-    """Test Retrieve all entries when database has data is successful."""
-    create_uf(client)
-
-    # Retrieve all UFs
-    response = client.get(url)
-
-    assert response.status_code == 200
-    assert isinstance(response.json, list)
-    assert len(response.json) > 0
-    assert any(
-        uf["data"]["nome"] == "UF Test" and uf["data"]["codigo"] == "1234"
-        for uf in response.json
-    )
-
-
-def test_create_duplicate_uf(client):
-    """Test Create an entry with an existing codigo fails."""
-    create_uf(client)
-    response = create_uf(client)
-
-    assert response.status_code == 422
-    assert response.json["message"] == "Já existe uma UF com esse código."
-
-
-@pytest.mark.parametrize(
-    "payload, missing_field",
-    [
-        ({"codigo": "1234"}, "nome"),
-        ({"nome": "UF Test"}, "codigo"),
-        ({"sigla": "UF Test"}, "nome"),
-        ({"nome_regiao": "UF Test"}, "nome"),
-        ({}, "nome"),
-    ],
-)
-def test_create_uf_missing_fields(client, payload, missing_field):
-    """Test Create an entry with missing nome or codigo fails."""
-    response = create_uf(client, data=payload)
-
-    assert response.status_code == 400
-    assert "message" in response.json
-    assert missing_field in response.json["message"]
-
-
-## Tests for UF
-@pytest.mark.dependency(name="get_uf", depends=["create_uf"])
-def test_get_existing_uf(client):
-    """
-    Test Retrieve a valid entry by ID is successful.
-    Depends on test_create_uf.
-    """
-    uf = create_uf(client).json["data"]
-
-    response = client.get(f"{url}{uf["id"]}")
-
-    assert response.status_code == 200
-    assert response.json["data"]["id"] == uf["id"]
-    assert response.json["data"]["nome"] == "UF Test"
-    assert response.json["data"]["codigo"] == "1234"
-    assert response.json["data"]["sigla"] == "UF"
-    assert response.json["data"]["nome_regiao"] == "REG"
-
-
-def test_get_nonexistent_uf(client):
-    """Test Retrieve a non-existent entry is successful."""
-    response = client.get(f"{url}999")
-
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
-
-
-@pytest.mark.dependency(depends=["create_uf", "get_uf"])
-def test_update_uf_with_different_codigo(client):
-    """
-    Test Update an existing entry with a different codigo is successful.
-    Depends on test_create_uf and test_get_existing_uf.
-    """
-    uf = create_uf(client).json["data"]
-
-    response = client.put(
-        f"{url}{uf['id']}",
-        json={
-            "nome": "Updated",
-            "codigo": "5678",
-            "sigla": "UF",
-            "nome_regiao": "REG",
-        },
-    )
-
-    updated_uf = client.get(f"{url}{uf["id"]}").json["data"]
-    assert response.status_code == 204
-    assert response.data == b""
-    assert updated_uf["id"] == uf["id"]
-    assert updated_uf["nome"] == "Updated"
-    assert updated_uf["codigo"] == "5678"
-    assert updated_uf["sigla"] == "UF"
-    assert updated_uf["nome_regiao"] == "REG"
-
-
-@pytest.mark.dependency(depends=["create_uf", "get_uf"])
-def test_update_uf_with_same_codigo(client):
-    """
-    Test Update an existing entry with the original codigo is successful.
-    Depends on test_create_uf and test_get_existing_uf.
-    """
-    uf = create_uf(client).json["data"]
-
-    response = client.put(
-        f"{url}{uf['id']}",
-        json={
-            "nome": "Updated",
-            "codigo": uf["codigo"],
-            "sigla": "UF",
-            "nome_regiao": "REG",
-        },
-    )
-
-    updated_uf = client.get(f"{url}{uf["id"]}").json["data"]
-    assert response.status_code == 204
-    assert response.data == b""
-    assert updated_uf["id"] == uf["id"]
-    assert updated_uf["nome"] == "Updated"
-    assert updated_uf["codigo"] == "1234"
-    assert updated_uf["sigla"] == "UF"
-    assert updated_uf["nome_regiao"] == "REG"
-
-
-def test_update_nonexistent_uf(client):
-    """Test updating a non-existent UF fails."""
-    non_existent_id = 9999
-
-    data = make_uf_data()
-
-    response = client.put(f"{url}{non_existent_id}", json=data)
-
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
-
-
-@pytest.mark.dependency(depends=["create_uf"])
-def test_update_uf_with_existing_codigo(client):
-    """Test updating a UF with a codigo fails."""
-
-    # Create two UFs
-    data1 = {
-        "nome": "UF One",
-        "codigo": "1111",
-        "sigla": "UF1",
-        "nome_regiao": "REG A",
-    }
-    data2 = {
-        "nome": "UF Two",
-        "codigo": "2222",
-        "sigla": "UF2",
-        "nome_regiao": "REG B",
-    }
-
-    uf1 = create_uf(client, data=data1).json["data"]
-    uf2 = create_uf(client, data=data2).json["data"]
-
-    # Attempt to update UF2 with UF1's codigo
-    uf2["codigo"] = uf1["codigo"]
-    response = client.put(
-        f"{url}{uf2["id"]}",
-        json={
-            "nome": "Updated UF",
-            "codigo": uf1["codigo"],
-            "sigla": uf2["sigla"],
-            "nome_regiao": uf2["nome_regiao"],
-        },
-    )
-
-    assert response.status_code == 422
-    assert response.json["message"] == "Já existe uma UF com esse código."
-
-
-@pytest.mark.dependency(depends=["create_uf"])
-def test_delete_existing_uf(client):
-    """Test deleting an existing UF is successful."""
-
-    uf = create_uf(client).json["data"]
-
-    # Delete the created UF
-    response = client.delete(f"{url}{uf["id"]}")
-
-    assert response.status_code == 204
-    assert response.data == b""
-
-    # Try retrieving it to confirm deletion
-    get_response = client.get(f"{url}{uf["id"]}")
-    assert get_response.status_code == 404
-
-
-def test_delete_nonexistent_uf(client):
-    """Test deleting a non-existent UF fails."""
-
-    non_existent_id = 9999
-    response = client.delete(f"{url}{non_existent_id}")
-
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
-
-
-def make_uf_data() -> dict:
-    """Make an object of data for body requests."""
+def make_uf_data():
     return {
-        "nome": "UF Test",
-        "codigo": "1234",
-        "sigla": "UF",
-        "nome_regiao": "REG",
+        "nome": fake.unique.state(),
+        "codigo": fake.unique.bothify(text="##"),
+        "sigla": fake.unique.bothify(text="??").upper(),
+        "nome_regiao": fake.random_element(
+            elements=("Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul")
+        ),
     }
 
 
-def create_uf(client, data=make_uf_data()) -> dict:
-    """Create an entry in the database."""
-    return client.post(url, json=data)
+def create_uf_db(session, data=None) -> UFModel:
+    """Create test UF record"""
+    data = data or make_uf_data()
+    uf = UFModel(**data)
+    session.add(uf)
+    session.commit()
+    return uf
+
+
+class TestUFCollection:
+    def test_get_empty(self, client):
+        """Test Retrieve all entries when database is empty is successful."""
+        response = client.get(url)
+        assert response.status_code == 200
+        assert response.json == []
+
+    def test_list_with_data(self, client, session):
+        """Test Retrieve all entries when database has data is successful."""
+        created_uf = create_uf_db(session)
+
+        response = client.get(url)
+        assert response.status_code == 200
+        assert isinstance(response.json, list)
+        assert len(response.json) > 0
+
+        listed_uf = response.json[0]["data"]
+        assert listed_uf["id"] == created_uf.id
+        assert listed_uf["nome"] == created_uf.nome
+
+    def test_create_valid(self, client, session):
+        """Test creating a valid UF"""
+        uf_data = make_uf_data()
+        response = client.post(url, json=uf_data)
+
+        assert response.status_code == 201
+        assert response.json["data"]["nome"] == uf_data["nome"]
+        assert response.json["data"]["codigo"] == uf_data["codigo"]
+        assert response.json["data"]["sigla"] == uf_data["sigla"]
+        assert response.json["data"]["nome_regiao"] == uf_data["nome_regiao"]
+        assert isinstance(response.json["data"]["id"], int)
+
+        # Verify database
+        db_uf = session.query(UFModel).filter_by(id=response.json["data"]["id"]).first()
+        assert db_uf is not None
+        assert db_uf.codigo == uf_data["codigo"]
+
+    def test_create_duplicate(self, client, session):
+        """Test Create an entry with an existing codigo fails."""
+        uf_data = make_uf_data()
+        create_uf_db(session, uf_data)
+        response = client.post(url, json=uf_data)
+
+        assert response.status_code == 422
+        assert "Já existe uma UF com esse código" in response.json["message"]
+
+    @pytest.mark.parametrize(
+        "payload, missing_field",
+        [
+            ({"codigo": "1234"}, "nome"),
+            ({"nome": "UF Test"}, "codigo"),
+            ({"sigla": "UF Test"}, "nome"),
+            ({"nome_regiao": "UF Test"}, "nome"),
+            ({}, "nome"),
+        ],
+    )
+    def test_create_missing_fields(self, client, payload, missing_field, session):
+        """Test validation for missing required fields"""
+        response = client.post(url, json=payload)
+
+        assert response.status_code == 400
+        assert "message" in response.json
+        assert missing_field in response.json["message"]
+
+
+class TestUFResource:
+    """Tests for single UF resource endpoints (/api/ufs/<id>)"""
+
+    @pytest.fixture
+    def existing_uf(self, session) -> UFModel:
+        """Fixture providing an existing UF."""
+        return create_uf_db(session)
+
+    def test_get_existing(self, client, existing_uf):
+        """Test getting an existing UF."""
+        response = client.get(f"{url}{existing_uf.id}")
+
+        assert response.status_code == 200
+        assert response.json["data"]["id"] == existing_uf.id
+        assert response.json["data"]["nome"] == existing_uf.nome
+        assert response.json["data"]["codigo"] == existing_uf.codigo
+        assert response.json["data"]["sigla"] == existing_uf.sigla
+        assert response.json["data"]["nome_regiao"] == existing_uf.nome_regiao
+
+    def test_get_nonexistent(self, client):
+        """Test getting non-existent UF."""
+        response = client.get(f"{url}9999")
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]
+
+    def test_update_same_codigo(self, client, existing_uf, session):
+        """Test Update an existing entry with a different codigo is successful."""
+        update_data = {
+            "nome": "Updated UF",
+            "codigo": existing_uf.codigo,
+            "sigla": "UU",
+            "nome_regiao": "NEW-REG",
+        }
+        response = client.put(f"{url}{existing_uf.id}", json=update_data)
+        assert response.status_code == 204
+
+        # Verify update
+        session.refresh(existing_uf)
+        assert existing_uf.nome == update_data["nome"]
+        assert existing_uf.codigo == update_data["codigo"]
+        assert existing_uf.sigla == update_data["sigla"]
+        assert existing_uf.nome_regiao == update_data["nome_regiao"]
+
+    def test_update_different_codigo(self, client, existing_uf, session):
+        """Test Update an existing entry with a different codigo is successful."""
+        update_data = {
+            "nome": "Updated UF",
+            "codigo": "5678",
+            "sigla": "UU",
+            "nome_regiao": "NEW-REG",
+        }
+        response = client.put(f"{url}{existing_uf.id}", json=update_data)
+        assert response.status_code == 204
+
+        # Verify update
+        session.refresh(existing_uf)
+        assert existing_uf.nome == update_data["nome"]
+        assert existing_uf.codigo == update_data["codigo"]
+        assert existing_uf.sigla == update_data["sigla"]
+        assert existing_uf.nome_regiao == update_data["nome_regiao"]
+
+    def test_update_nonexistent(self, client):
+        """Test updating non-existent UF"""
+        response = client.put(f"{url}9999", json=make_uf_data())
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]
+
+    def test_update_existent_codigo(self, client, existing_uf, session):
+        """Test updating with an existent codigo fails."""
+        data = {
+            "nome": "UF Test 2",
+            "codigo": "4321",
+            "sigla": "U2",
+            "nome_regiao": "REG2",
+        }
+        uf2 = create_uf_db(session, data)
+
+        data["codigo"] = existing_uf.codigo
+        response = client.put(f"{url}{uf2.id}", json=data)
+
+        assert response.status_code == 422
+        assert "Já existe uma UF com esse código" in response.json["message"]
+
+    def test_delete_existing(self, client, existing_uf, session):
+        """Test deleting existing UF"""
+        response = client.delete(f"{url}{existing_uf.id}")
+
+        assert response.status_code == 204
+
+        # Verify deletion
+        assert session.get(UFModel, existing_uf.id) is None
+
+    def test_delete_nonexistent(self, client):
+        """Test deleting non-existent UF"""
+        response = client.delete(f"{url}9999")
+
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]

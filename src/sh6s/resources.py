@@ -30,7 +30,7 @@ class SH6s(BaseResource):
             self.db.session.query(SH6Model).filter_by(codigo=args["codigo"]).first()
         )
         if existing_entry:
-            return abort(422, message="Já existe uma SH6 com esse código.")
+            return abort(422, message="Já existe um SH6 com esse código.")
 
         entry = SH6Model(nome=args["nome"], codigo=args["codigo"])
         self.db.session.add(entry)
@@ -74,7 +74,7 @@ class SH6(BaseResource):
             self.db.session.query(SH6Model).filter_by(codigo=args["codigo"]).first()
         )
         if existing_entry and existing_entry.id != entry.id:
-            return abort(422, message="Já existe uma SH6 com esse código.")
+            return abort(422, message="Já existe um SH6 com esse código.")
 
         entry.nome = args["nome"]
         entry.codigo = args["codigo"]

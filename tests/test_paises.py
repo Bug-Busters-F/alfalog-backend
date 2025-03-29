@@ -1,205 +1,162 @@
-## Tests for Pais Collection
-
 import pytest
-
+from faker import Faker
+from src.paises.model import PaisModel
 
 url = "/api/paises/"
+fake = Faker("pt_BR")
 
 
-def test_get_paises_empty(client):
-    """Test Retrieve all entries when database is empty is successful."""
-    response = client.get(url)
-    assert response.status_code == 200
-    assert response.json == []
+def make_pais_data():
+    return {
+        "codigo": fake.unique.bothify(text="####"),
+        "nome": fake.unique.country(),
+    }
 
 
-@pytest.mark.dependency(name="create_pais")
-def test_create_pais(client) -> int:
-    """Test Create a new valid entry is successful."""
-    response = create_pais(client)
-
-    assert response.status_code == 201
-    assert "id" in response.json["data"]
-    assert response.json["data"]["nome"] == "Pais Test"
-    assert response.json["data"]["codigo"] == "1234"
+def create_pais_db(session, data=None) -> PaisModel:
+    """Create test Pais record"""
+    data = data or make_pais_data()
+    pais = PaisModel(**data)
+    session.add(pais)
+    session.commit()
+    return pais
 
 
-@pytest.mark.dependency(depends=["create_pais"])
-def test_get_paises_with_data(client):
-    """Test Retrieve all entries when database has data is successful."""
-    # Create a Pais entry
-    create_pais(client)
+class TestPaisCollection:
+    def test_get_empty(self, client):
+        """Test retrieving all entries when database is empty"""
+        response = client.get(url)
+        assert response.status_code == 200
+        assert response.json == []
 
-    # Retrieve all Paises
-    response = client.get(url)
+    def test_list_with_data(self, client, session):
+        """Test retrieving all entries when database has data"""
+        created_pais = create_pais_db(session)
 
-    assert response.status_code == 200
-    assert isinstance(response.json, list)
-    assert len(response.json) > 0
-    assert any(
-        pais["data"]["nome"] == "Pais Test" and pais["data"]["codigo"] == "1234"
-        for pais in response.json
+        response = client.get(url)
+        assert response.status_code == 200
+        assert isinstance(response.json, list)
+        assert len(response.json) > 0
+
+        listed_pais = response.json[0]["data"]
+        assert listed_pais["id"] == created_pais.id
+        assert listed_pais["nome"] == created_pais.nome
+
+    def test_create_valid(self, client, session):
+        """Test creating a valid Pais"""
+        pais_data = make_pais_data()
+        response = client.post(url, json=pais_data)
+
+        assert response.status_code == 201
+        assert response.json["data"]["nome"] == pais_data["nome"]
+        assert response.json["data"]["codigo"] == pais_data["codigo"]
+        assert isinstance(response.json["data"]["id"], int)
+
+        # Verify database
+        db_pais = (
+            session.query(PaisModel).filter_by(id=response.json["data"]["id"]).first()
+        )
+        assert db_pais is not None
+        assert db_pais.codigo == pais_data["codigo"]
+
+    def test_create_duplicate(self, client, session):
+        """Test creating duplicate Pais fails"""
+        pais_data = make_pais_data()
+        create_pais_db(session, pais_data)
+        response = client.post(url, json=pais_data)
+
+        assert response.status_code == 422
+        assert "Já existe um País com esse código" in response.json["message"]
+
+    @pytest.mark.parametrize(
+        "payload, missing_field",
+        [
+            ({"codigo": "1058"}, "nome"),
+            ({"nome": "Brasil"}, "codigo"),
+            ({}, "nome"),
+        ],
     )
+    def test_create_missing_fields(self, client, payload, missing_field, session):
+        """Test validation for missing required fields"""
+        response = client.post(url, json=payload)
+
+        assert response.status_code == 400
+        assert "message" in response.json
+        assert missing_field in response.json["message"]
 
 
-def test_create_duplicate_pais(client):
-    """Test Create an entry with an existing codigo fails."""
-    create_pais(client)
-    response = create_pais(client)
+class TestPaisResource:
+    """Tests for single Pais resource endpoints (/api/paises/<id>)"""
 
-    assert response.status_code == 422
-    assert response.json["message"] == "Já existe uma Pais com esse código."
+    @pytest.fixture
+    def existing_pais(self, session) -> PaisModel:
+        """Fixture providing an existing Pais"""
+        return create_pais_db(session)
 
+    def test_get_existing(self, client, existing_pais):
+        """Test getting an existing Pais"""
+        response = client.get(f"{url}{existing_pais.id}")
 
-@pytest.mark.parametrize(
-    "payload, missing_field",
-    [
-        ({"codigo": "1234"}, "nome"),
-        ({"nome": "Pais Test"}, "codigo"),
-        ({}, "nome"),
-    ],
-)
-def test_create_pais_missing_fields(client, payload, missing_field):
-    """Test Create an entry with missing nome or codigo fails."""
-    response = create_pais(client, data=payload)
+        assert response.status_code == 200
+        assert response.json["data"]["id"] == existing_pais.id
+        assert response.json["data"]["nome"] == existing_pais.nome
+        assert response.json["data"]["codigo"] == existing_pais.codigo
 
-    assert response.status_code == 400
-    assert "message" in response.json
-    assert missing_field in response.json["message"]
+    def test_get_nonexistent(self, client):
+        """Test getting non-existent Pais"""
+        response = client.get(f"{url}9999")
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]
 
+    def test_update_same_codigo(self, client, existing_pais, session):
+        """Test updating with same codigo"""
+        update_data = {"codigo": existing_pais.codigo, "nome": "Brasil Atualizado"}
+        response = client.put(f"{url}{existing_pais.id}", json=update_data)
+        assert response.status_code == 204
 
-## Tests for Pais
-@pytest.mark.dependency(name="get_pais", depends=["create_pais"])
-def test_get_existing_pais(client):
-    """
-    Test Retrieve a valid entry by ID is successful.
-    Depends on test_create_pais.
-    """
-    pais = create_pais(client).json["data"]
+        # Verify update
+        session.refresh(existing_pais)
+        assert existing_pais.codigo == update_data["codigo"]
+        assert existing_pais.nome == update_data["nome"]
 
-    response = client.get(f"{url}{pais["id"]}")
+    def test_update_different_codigo(self, client, existing_pais, session):
+        """Test updating with different codigo"""
+        update_data = {"codigo": "9999", "nome": "Brasil Modificado"}
+        response = client.put(f"{url}{existing_pais.id}", json=update_data)
+        assert response.status_code == 204
 
-    assert response.status_code == 200
-    assert response.json["data"]["id"] == pais["id"]
-    assert response.json["data"]["nome"] == "Pais Test"
-    assert response.json["data"]["codigo"] == "1234"
+        # Verify update
+        session.refresh(existing_pais)
+        assert existing_pais.codigo == update_data["codigo"]
+        assert existing_pais.nome == update_data["nome"]
 
+    def test_update_nonexistent(self, client):
+        """Test updating non-existent Pais"""
+        response = client.put(f"{url}9999", json=make_pais_data())
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]
 
-def test_get_nonexistent_pais(client):
-    """Test Retrieve a non-existent entry is successful."""
-    response = client.get(f"{url}999")
+    def test_update_existent_codigo(self, client, existing_pais, session):
+        """Test updating with existing codigo fails"""
+        data = {"codigo": "1111", "nome": "Argentina"}
+        pais2 = create_pais_db(session, data)
 
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
+        data["codigo"] = existing_pais.codigo
+        response = client.put(f"{url}{pais2.id}", json=data)
 
+        assert response.status_code == 422
+        assert "Já existe um País com esse código" in response.json["message"]
 
-@pytest.mark.dependency(depends=["create_pais", "get_pais"])
-def test_update_pais_with_different_codigo(client):
-    """
-    Test Update an existing entry with a different codigo is successful.
-    Depends on test_create_pais and test_get_existing_pais.
-    """
-    pais = create_pais(client).json["data"]
+    def test_delete_existing(self, client, existing_pais, session):
+        """Test deleting existing Pais"""
+        response = client.delete(f"{url}{existing_pais.id}")
+        assert response.status_code == 204
 
-    response = client.put(
-        f"{url}{pais['id']}", json={"nome": "Updated", "codigo": "5678"}
-    )
+        # Verify deletion
+        assert session.get(PaisModel, existing_pais.id) is None
 
-    updated_pais = client.get(f"{url}{pais["id"]}").json["data"]
-    assert response.status_code == 204
-    assert response.data == b""
-    assert updated_pais["id"] == pais["id"]
-    assert updated_pais["nome"] == "Updated"
-    assert updated_pais["codigo"] == "5678"
-
-
-@pytest.mark.dependency(depends=["create_pais", "get_pais"])
-def test_update_pais_with_same_codigo(client):
-    """
-    Test Update an existing entry with the original codigo is successful.
-    Depends on test_create_pais and test_get_existing_pais.
-    """
-    pais = create_pais(client).json["data"]
-
-    response = client.put(
-        f"{url}{pais['id']}", json={"nome": "Updated", "codigo": "1234"}
-    )
-
-    updated_pais = client.get(f"{url}{pais["id"]}").json["data"]
-    assert response.status_code == 204
-    assert response.data == b""
-    assert updated_pais["id"] == pais["id"]
-    assert updated_pais["nome"] == "Updated"
-    assert updated_pais["codigo"] == "1234"
-
-
-def test_update_nonexistent_pais(client):
-    """Test updating a non-existent Pais fails."""
-    non_existent_id = 9999
-    data = make_pais_data()
-
-    response = client.put(f"{url}{non_existent_id}", json=data)
-
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
-
-
-@pytest.mark.dependency(depends=["create_pais"])
-def test_update_pais_with_existing_codigo(client):
-    """Test updating a Pais with a codigo fails."""
-
-    # Create two Paises
-    data1 = {"nome": "Pais One", "codigo": "1111"}
-    data2 = {"nome": "Pais Two", "codigo": "2222"}
-
-    pais1 = create_pais(client, data=data1).json["data"]
-    pais2 = create_pais(client, data=data2).json["data"]
-
-    # Attempt to update Pais2 with Pais1's codigo
-    response = client.put(
-        f"{url}{pais2["id"]}", json={"nome": "Updated Pais", "codigo": pais1["codigo"]}
-    )
-
-    assert response.status_code == 422
-    assert response.json["message"] == "Já existe uma Pais com esse código."
-
-
-@pytest.mark.dependency(depends=["create_pais"])
-def test_delete_existing_pais(client):
-    """Test deleting an existing Pais is successful."""
-
-    # Create a Pais
-    pais = create_pais(client).json["data"]
-
-    # Delete the created Pais
-    response = client.delete(f"{url}{pais["id"]}")
-
-    assert response.status_code == 204
-    assert response.data == b""
-
-    # Try retrieving it to confirm deletion
-    get_response = client.get(f"{url}{pais["id"]}")
-    assert get_response.status_code == 404
-
-
-def test_delete_nonexistent_pais(client):
-    """Test deleting a non-existent Pais fails."""
-
-    non_existent_id = 9999
-    response = client.delete(f"{url}{non_existent_id}")
-
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
-
-
-#
-
-
-def make_pais_data() -> dict:
-    """Make an object of data for body requests."""
-    return {"nome": "Pais Test", "codigo": "1234"}
-
-
-def create_pais(client, data=make_pais_data()) -> dict:
-    """Create an entry in the database."""
-    return client.post(url, json=data)
+    def test_delete_nonexistent(self, client):
+        """Test deleting non-existent Pais"""
+        response = client.delete(f"{url}9999")
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]
