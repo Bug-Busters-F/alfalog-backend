@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 class UEModel(BaseModel):
     """Model da Unidade Estatística (UE)."""
 
-    __tablename__ = "unidades_estatisticas"
+    __tablename__ = "ues"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     codigo: Mapped[str] = mapped_column(String(31), unique=True)

@@ -1,201 +1,165 @@
-## Tests for SH6 Collection
-
 import pytest
-
+from src.sh6s.model import SH6Model
+from faker import Faker
 
 url = "/api/sh6s/"
+fake = Faker("pt_BR")
 
 
-def test_get_sh6s_empty(client):
-    """Test Retrieve all entries when database is empty is successful."""
-    response = client.get(url)
-    assert response.status_code == 200
-    assert response.json == []
+def make_sh6_data():
+    return {
+        "codigo": fake.unique.bothify(text="######"),
+        "nome": fake.sentence(nb_words=6, variable_nb_words=True),
+    }
 
 
-@pytest.mark.dependency(name="create_sh6")
-def test_create_sh6(client) -> int:
-    """Test Create a new valid entry is successful."""
-    response = create_sh6(client)
-
-    assert response.status_code == 201
-    assert "id" in response.json["data"]
-    assert response.json["data"]["nome"] == "SH6 Test"
-    assert response.json["data"]["codigo"] == "1234"
+def create_sh6_db(session, data=None) -> SH6Model:
+    """Create test SH6 record"""
+    data = data or make_sh6_data()
+    sh6 = SH6Model(**data)
+    session.add(sh6)
+    session.commit()
+    return sh6
 
 
-@pytest.mark.dependency(depends=["create_sh6"])
-def test_get_sh6s_with_data(client):
-    """Test Retrieve all entries when database has data is successful."""
-    create_sh6(client)
+class TestSH6Collection:
+    def test_get_empty(self, client):
+        """Test retrieving all entries when database is empty"""
+        response = client.get(url)
+        assert response.status_code == 200
+        assert response.json == []
 
-    # Retrieve all SH6s
-    response = client.get(url)
+    def test_list_with_data(self, client, session):
+        """Test retrieving all entries when database has data"""
+        created_sh6 = create_sh6_db(session)
 
-    assert response.status_code == 200
-    assert isinstance(response.json, list)
-    assert len(response.json) > 0
-    assert any(
-        sh6["data"]["nome"] == "SH6 Test" and sh6["data"]["codigo"] == "1234"
-        for sh6 in response.json
+        response = client.get(url)
+        assert response.status_code == 200
+        assert isinstance(response.json, list)
+        assert len(response.json) > 0
+
+        listed_sh6 = response.json[0]["data"]
+        assert listed_sh6["id"] == created_sh6.id
+        assert listed_sh6["nome"] == created_sh6.nome
+
+    def test_create_valid(self, client, session):
+        """Test creating a valid SH6"""
+        sh6_data = make_sh6_data()
+        response = client.post(url, json=sh6_data)
+
+        assert response.status_code == 201
+        assert response.json["data"]["nome"] == sh6_data["nome"]
+        assert response.json["data"]["codigo"] == sh6_data["codigo"]
+        assert isinstance(response.json["data"]["id"], int)
+
+        # Verify database
+        db_sh6 = (
+            session.query(SH6Model).filter_by(id=response.json["data"]["id"]).first()
+        )
+        assert db_sh6 is not None
+        assert db_sh6.codigo == sh6_data["codigo"]
+
+    def test_create_duplicate(self, client, session):
+        """Test creating duplicate SH6 fails"""
+        sh6_data = make_sh6_data()
+        create_sh6_db(session, sh6_data)
+        response = client.post(url, json=sh6_data)
+
+        assert response.status_code == 422
+        assert "Já existe um SH6 com esse código" in response.json["message"]
+
+    @pytest.mark.parametrize(
+        "payload, missing_field",
+        [
+            ({"codigo": "123456"}, "nome"),
+            ({"nome": "Produtos químicos"}, "codigo"),
+            ({}, "nome"),
+        ],
     )
+    def test_create_missing_fields(self, client, payload, missing_field, session):
+        """Test validation for missing required fields"""
+        response = client.post(url, json=payload)
+
+        assert response.status_code == 400
+        assert "message" in response.json
+        assert missing_field in response.json["message"]
 
 
-def test_create_duplicate_sh6(client):
-    """Test Create an entry with an existing codigo fails."""
-    create_sh6(client)
-    response = create_sh6(client)
+class TestSH6Resource:
+    """Tests for single SH6 resource endpoints (/api/sh6s/<id>)"""
 
-    assert response.status_code == 422
-    assert response.json["message"] == "Já existe uma SH6 com esse código."
+    @pytest.fixture
+    def existing_sh6(self, session) -> SH6Model:
+        """Fixture providing an existing SH6"""
+        return create_sh6_db(session)
 
+    def test_get_existing(self, client, existing_sh6):
+        """Test getting an existing SH6"""
+        response = client.get(f"{url}{existing_sh6.id}")
 
-@pytest.mark.parametrize(
-    "payload, missing_field",
-    [
-        ({"codigo": "1234"}, "nome"),
-        ({"nome": "SH6 Test"}, "codigo"),
-        ({}, "nome"),
-    ],
-)
-def test_create_sh6_missing_fields(client, payload, missing_field):
-    """Test Create an entry with missing nome or codigo fails."""
-    response = create_sh6(client, data=payload)
+        assert response.status_code == 200
+        assert response.json["data"]["id"] == existing_sh6.id
+        assert response.json["data"]["nome"] == existing_sh6.nome
+        assert response.json["data"]["codigo"] == existing_sh6.codigo
 
-    assert response.status_code == 400
-    assert "message" in response.json
-    assert missing_field in response.json["message"]
+    def test_get_nonexistent(self, client):
+        """Test getting non-existent SH6"""
+        response = client.get(f"{url}9999")
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]
 
+    def test_update_same_codigo(self, client, existing_sh6, session):
+        """Test updating with same codigo"""
+        update_data = {
+            "codigo": existing_sh6.codigo,
+            "nome": "Produtos químicos atualizados",
+        }
+        response = client.put(f"{url}{existing_sh6.id}", json=update_data)
+        assert response.status_code == 204
 
-## Tests for SH6
-@pytest.mark.dependency(name="get_sh6", depends=["create_sh6"])
-def test_get_existing_sh6(client):
-    """
-    Test Retrieve a valid entry by ID is successful.
-    Depends on test_create_sh6.
-    """
-    sh6 = create_sh6(client).json["data"]
+        # Verify update
+        session.refresh(existing_sh6)
+        assert existing_sh6.codigo == update_data["codigo"]
+        assert existing_sh6.nome == update_data["nome"]
 
-    response = client.get(f"{url}{sh6["id"]}")
+    def test_update_different_codigo(self, client, existing_sh6, session):
+        """Test updating with different codigo"""
+        update_data = {"codigo": "654321", "nome": "Produtos químicos modificados"}
+        response = client.put(f"{url}{existing_sh6.id}", json=update_data)
+        assert response.status_code == 204
 
-    assert response.status_code == 200
-    assert response.json["data"]["id"] == sh6["id"]
-    assert response.json["data"]["nome"] == "SH6 Test"
-    assert response.json["data"]["codigo"] == "1234"
+        # Verify update
+        session.refresh(existing_sh6)
+        assert existing_sh6.codigo == update_data["codigo"]
+        assert existing_sh6.nome == update_data["nome"]
 
+    def test_update_nonexistent(self, client):
+        """Test updating non-existent SH6"""
+        response = client.put(f"{url}9999", json=make_sh6_data())
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]
 
-def test_get_nonexistent_sh6(client):
-    """Test Retrieve a non-existent entry is successful."""
-    response = client.get(f"{url}999")
+    def test_update_existent_codigo(self, client, existing_sh6, session):
+        """Test updating with existing codigo fails"""
+        data = {"codigo": "111111", "nome": "Outros produtos químicos específicos"}
+        sh6_2 = create_sh6_db(session, data)
 
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
+        data["codigo"] = existing_sh6.codigo
+        response = client.put(f"{url}{sh6_2.id}", json=data)
 
+        assert response.status_code == 422
+        assert "Já existe um SH6 com esse código" in response.json["message"]
 
-@pytest.mark.dependency(depends=["create_sh6", "get_sh6"])
-def test_update_sh6_with_different_codigo(client):
-    """
-    Test Update an existing entry with a different codigo is successful.
-    Depends on test_create_sh6 and test_get_existing_sh6.
-    """
-    sh6 = create_sh6(client).json["data"]
+    def test_delete_existing(self, client, existing_sh6, session):
+        """Test deleting existing SH6"""
+        response = client.delete(f"{url}{existing_sh6.id}")
+        assert response.status_code == 204
 
-    response = client.put(
-        f"{url}{sh6['id']}", json={"nome": "Updated", "codigo": "5678"}
-    )
+        # Verify deletion
+        assert session.get(SH6Model, existing_sh6.id) is None
 
-    updated_sh6 = client.get(f"{url}{sh6["id"]}").json["data"]
-    assert response.status_code == 204
-    assert response.data == b""
-    assert updated_sh6["id"] == sh6["id"]
-    assert updated_sh6["nome"] == "Updated"
-    assert updated_sh6["codigo"] == "5678"
-
-
-@pytest.mark.dependency(depends=["create_sh6", "get_sh6"])
-def test_update_sh6_with_same_codigo(client):
-    """
-    Test Update an existing entry with the original codigo is successful.
-    Depends on test_create_sh6 and test_get_existing_sh6.
-    """
-    sh6 = create_sh6(client).json["data"]
-
-    response = client.put(
-        f"{url}{sh6['id']}", json={"nome": "Updated", "codigo": sh6["codigo"]}
-    )
-
-    updated_sh6 = client.get(f"{url}{sh6["id"]}").json["data"]
-    assert response.status_code == 204
-    assert response.data == b""
-    assert updated_sh6["id"] == sh6["id"]
-    assert updated_sh6["nome"] == "Updated"
-    assert updated_sh6["codigo"] == "1234"
-
-
-def test_update_nonexistent_sh6(client):
-    """Test updating a non-existent SH6 fails."""
-    non_existent_id = 9999
-    data = make_sh6_data()
-    response = client.put(f"{url}{non_existent_id}", json=data)
-
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
-
-
-@pytest.mark.dependency(depends=["create_sh6"])
-def test_update_sh6_with_existing_codigo(client):
-    """Test updating a SH6 with a codigo fails."""
-
-    # Create two SH6s
-    data1 = {"nome": "SH6 One", "codigo": "1111"}
-    data2 = {"nome": "SH6 Two", "codigo": "2222"}
-
-    sh61 = create_sh6(client, data=data1).json["data"]
-    sh62 = create_sh6(client, data=data2).json["data"]
-
-    # Attempt to update SH62 with SH61's codigo
-    sh62["codigo"] = sh61["codigo"]
-    response = client.put(
-        f"{url}{sh62["id"]}", json={"nome": "Updated SH6", "codigo": "1111"}
-    )
-
-    assert response.status_code == 422
-    assert response.json["message"] == "Já existe uma SH6 com esse código."
-
-
-@pytest.mark.dependency(depends=["create_sh6"])
-def test_delete_existing_sh6(client):
-    """Test deleting an existing SH6 is successful."""
-
-    # Create a SH6
-    sh6 = create_sh6(client).json["data"]
-
-    # Delete the created SH6
-    response = client.delete(f"{url}{sh6["id"]}")
-
-    assert response.status_code == 204
-    assert response.data == b""
-
-    # Try retrieving it to confirm deletion
-    get_response = client.get(f"{url}{sh6["id"]}")
-    assert get_response.status_code == 404
-
-
-def test_delete_nonexistent_sh6(client):
-    """Test deleting a non-existent SH6 fails."""
-
-    non_existent_id = 9999
-    response = client.delete(f"{url}{non_existent_id}")
-
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
-
-
-def make_sh6_data() -> dict:
-    """Make an object of data for body requests."""
-    return {"nome": "SH6 Test", "codigo": "1234"}
-
-
-def create_sh6(client, data=make_sh6_data()) -> dict:
-    """Create an entry in the database."""
-    return client.post(url, json=data)
+    def test_delete_nonexistent(self, client):
+        """Test deleting non-existent SH6"""
+        response = client.delete(f"{url}9999")
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]

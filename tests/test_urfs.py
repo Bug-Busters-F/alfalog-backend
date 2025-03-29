@@ -1,201 +1,162 @@
-## Tests for URF Collection
-
 import pytest
-
+from src.urfs.model import URFModel
+from faker import Faker
 
 url = "/api/urfs/"
+fake = Faker("pt_BR")
 
 
-def test_get_urfs_empty(client):
-    """Test Retrieve all entries when database is empty is successful."""
-    response = client.get(url)
-    assert response.status_code == 200
-    assert response.json == []
+def make_urf_data():
+    return {
+        "codigo": fake.unique.bothify(text="####"),
+        "nome": "URF " + fake.unique.city(),
+    }
 
 
-@pytest.mark.dependency(name="create_urf")
-def test_create_urf(client) -> int:
-    """Test Create a new valid entry is successful."""
-    response = create_urf(client)
-
-    assert response.status_code == 201
-    assert "id" in response.json["data"]
-    assert response.json["data"]["nome"] == "URF Test"
-    assert response.json["data"]["codigo"] == "1234"
+def create_urf_db(session, data=None) -> URFModel:
+    """Create test URF record"""
+    data = data or make_urf_data()
+    urf = URFModel(**data)
+    session.add(urf)
+    session.commit()
+    return urf
 
 
-@pytest.mark.dependency(depends=["create_urf"])
-def test_get_urfs_with_data(client):
-    """Test Retrieve all entries when database has data is successful."""
-    create_urf(client)
+class TestURFCollection:
+    def test_get_empty(self, client):
+        """Test retrieving all entries when database is empty"""
+        response = client.get(url)
+        assert response.status_code == 200
+        assert response.json == []
 
-    # Retrieve all URFs
-    response = client.get(url)
+    def test_list_with_data(self, client, session):
+        """Test retrieving all entries when database has data"""
+        created_urf = create_urf_db(session)
 
-    assert response.status_code == 200
-    assert isinstance(response.json, list)
-    assert len(response.json) > 0
-    assert any(
-        urf["data"]["nome"] == "URF Test" and urf["data"]["codigo"] == "1234"
-        for urf in response.json
+        response = client.get(url)
+        assert response.status_code == 200
+        assert isinstance(response.json, list)
+        assert len(response.json) > 0
+
+        listed_urf = response.json[0]["data"]
+        assert listed_urf["id"] == created_urf.id
+        assert listed_urf["nome"] == created_urf.nome
+
+    def test_create_valid(self, client, session):
+        """Test creating a valid URF"""
+        urf_data = make_urf_data()
+        response = client.post(url, json=urf_data)
+
+        assert response.status_code == 201
+        assert response.json["data"]["nome"] == urf_data["nome"]
+        assert response.json["data"]["codigo"] == urf_data["codigo"]
+        assert isinstance(response.json["data"]["id"], int)
+
+        # Verify database
+        db_urf = (
+            session.query(URFModel).filter_by(id=response.json["data"]["id"]).first()
+        )
+        assert db_urf is not None
+        assert db_urf.codigo == urf_data["codigo"]
+
+    def test_create_duplicate(self, client, session):
+        """Test creating duplicate URF fails"""
+        urf_data = make_urf_data()
+        create_urf_db(session, urf_data)
+        response = client.post(url, json=urf_data)
+
+        assert response.status_code == 422
+        assert "Já existe uma URF com esse código" in response.json["message"]
+
+    @pytest.mark.parametrize(
+        "payload, missing_field",
+        [
+            ({"codigo": "1234"}, "nome"),
+            ({"nome": "URF Teste"}, "codigo"),
+            ({}, "nome"),
+        ],
     )
+    def test_create_missing_fields(self, client, payload, missing_field, session):
+        """Test validation for missing required fields"""
+        response = client.post(url, json=payload)
+
+        assert response.status_code == 400
+        assert "message" in response.json
+        assert missing_field in response.json["message"]
 
 
-def test_create_duplicate_urf(client):
-    """Test Create an entry with an existing codigo fails."""
-    create_urf(client)
-    response = create_urf(client)
+class TestURFResource:
+    """Tests for single URF resource endpoints (/api/urfs/<id>)"""
 
-    assert response.status_code == 422
-    assert response.json["message"] == "Já existe uma URF com esse código."
+    @pytest.fixture
+    def existing_urf(self, session) -> URFModel:
+        """Fixture providing an existing URF"""
+        return create_urf_db(session)
 
+    def test_get_existing(self, client, existing_urf):
+        """Test getting an existing URF"""
+        response = client.get(f"{url}{existing_urf.id}")
 
-@pytest.mark.parametrize(
-    "payload, missing_field",
-    [
-        ({"codigo": "1234"}, "nome"),
-        ({"nome": "URF Test"}, "codigo"),
-        ({}, "nome"),
-    ],
-)
-def test_create_urf_missing_fields(client, payload, missing_field):
-    """Test Create an entry with missing nome or codigo fails."""
-    response = create_urf(client, data=payload)
+        assert response.status_code == 200
+        assert response.json["data"]["id"] == existing_urf.id
+        assert response.json["data"]["nome"] == existing_urf.nome
+        assert response.json["data"]["codigo"] == existing_urf.codigo
 
-    assert response.status_code == 400
-    assert "message" in response.json
-    assert missing_field in response.json["message"]
+    def test_get_nonexistent(self, client):
+        """Test getting non-existent URF"""
+        response = client.get(f"{url}9999")
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]
 
+    def test_update_same_codigo(self, client, existing_urf, session):
+        """Test updating with same codigo"""
+        update_data = {"codigo": existing_urf.codigo, "nome": "URF Atualizada"}
+        response = client.put(f"{url}{existing_urf.id}", json=update_data)
+        assert response.status_code == 204
 
-## Tests for URF
-@pytest.mark.dependency(name="get_urf", depends=["create_urf"])
-def test_get_existing_urf(client):
-    """
-    Test Retrieve a valid entry by ID is successful.
-    Depends on test_create_urf.
-    """
-    urf = create_urf(client).json["data"]
+        # Verify update
+        session.refresh(existing_urf)
+        assert existing_urf.codigo == update_data["codigo"]
+        assert existing_urf.nome == update_data["nome"]
 
-    response = client.get(f"{url}{urf["id"]}")
+    def test_update_different_codigo(self, client, existing_urf, session):
+        """Test updating with different codigo"""
+        update_data = {"codigo": "5678", "nome": "URF Modificada"}
+        response = client.put(f"{url}{existing_urf.id}", json=update_data)
+        assert response.status_code == 204
 
-    assert response.status_code == 200
-    assert response.json["data"]["id"] == urf["id"]
-    assert response.json["data"]["nome"] == "URF Test"
-    assert response.json["data"]["codigo"] == "1234"
+        # Verify update
+        session.refresh(existing_urf)
+        assert existing_urf.codigo == update_data["codigo"]
+        assert existing_urf.nome == update_data["nome"]
 
+    def test_update_nonexistent(self, client):
+        """Test updating non-existent URF"""
+        response = client.put(f"{url}9999", json=make_urf_data())
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]
 
-def test_get_nonexistent_urf(client):
-    """Test Retrieve a non-existent entry is successful."""
-    response = client.get(f"{url}999")
+    def test_update_existent_codigo(self, client, existing_urf, session):
+        """Test updating with existing codigo fails"""
+        data = {"codigo": "1111", "nome": "Outra URF"}
+        urf2 = create_urf_db(session, data)
 
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
+        data["codigo"] = existing_urf.codigo
+        response = client.put(f"{url}{urf2.id}", json=data)
 
+        assert response.status_code == 422
+        assert "Já existe uma URF com esse código" in response.json["message"]
 
-@pytest.mark.dependency(depends=["create_urf", "get_urf"])
-def test_update_urf_with_different_codigo(client):
-    """
-    Test Update an existing entry with a different codigo is successful.
-    Depends on test_create_urf and test_get_existing_urf.
-    """
-    urf = create_urf(client).json["data"]
+    def test_delete_existing(self, client, existing_urf, session):
+        """Test deleting existing URF"""
+        response = client.delete(f"{url}{existing_urf.id}")
+        assert response.status_code == 204
 
-    response = client.put(
-        f"{url}{urf['id']}", json={"nome": "Updated", "codigo": "5678"}
-    )
+        # Verify deletion
+        assert session.get(URFModel, existing_urf.id) is None
 
-    updated_urf = client.get(f"{url}{urf["id"]}").json["data"]
-    assert response.status_code == 204
-    assert response.data == b""
-    assert updated_urf["id"] == urf["id"]
-    assert updated_urf["nome"] == "Updated"
-    assert updated_urf["codigo"] == "5678"
-
-
-@pytest.mark.dependency(depends=["create_urf", "get_urf"])
-def test_update_urf_with_same_codigo(client):
-    """
-    Test Update an existing entry with the original codigo is successful.
-    Depends on test_create_urf and test_get_existing_urf.
-    """
-    urf = create_urf(client).json["data"]
-
-    response = client.put(
-        f"{url}{urf['id']}", json={"nome": "Updated", "codigo": urf["codigo"]}
-    )
-
-    updated_urf = client.get(f"{url}{urf["id"]}").json["data"]
-    assert response.status_code == 204
-    assert response.data == b""
-    assert updated_urf["id"] == urf["id"]
-    assert updated_urf["nome"] == "Updated"
-    assert updated_urf["codigo"] == "1234"
-
-
-def test_update_nonexistent_urf(client):
-    """Test updating a non-existent URF fails."""
-    non_existent_id = 9999
-    data = make_urf_data()
-
-    response = client.put(f"{url}{non_existent_id}", json=data)
-
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
-
-
-@pytest.mark.dependency(depends=["create_urf"])
-def test_update_urf_with_existing_codigo(client):
-    """Test updating a URF with a codigo fails."""
-
-    # Create two URFs
-    data1 = {"nome": "URF One", "codigo": "1111"}
-    data2 = {"nome": "URF Two", "codigo": "2222"}
-
-    urf1 = create_urf(client, data=data1).json["data"]
-    urf2 = create_urf(client, data=data2).json["data"]
-
-    # Attempt to update URF2 with URF1's codigo
-    response = client.put(
-        f"{url}{urf2["id"]}", json={"nome": "Updated URF", "codigo": urf1["codigo"]}
-    )
-
-    assert response.status_code == 422
-    assert response.json["message"] == "Já existe uma URF com esse código."
-
-
-@pytest.mark.dependency(depends=["create_urf"])
-def test_delete_existing_urf(client):
-    """Test deleting an existing URF is successful."""
-
-    # Create a URF
-    urf = create_urf(client).json["data"]
-
-    # Delete the created URF
-    response = client.delete(f"{url}{urf["id"]}")
-
-    assert response.status_code == 204
-    assert response.data == b""
-
-    # Try retrieving it to confirm deletion
-    get_response = client.get(f"{url}{urf["id"]}")
-    assert get_response.status_code == 404
-
-
-def test_delete_nonexistent_urf(client):
-    """Test deleting a non-existent URF fails."""
-
-    non_existent_id = 9999
-    response = client.delete(f"{url}{non_existent_id}")
-
-    assert response.status_code == 404
-    assert response.json["message"] == "Nenhum registro encontrado."
-
-
-def make_urf_data() -> dict:
-    """Make an object of data for body requests."""
-    return {"nome": "URF Test", "codigo": "1234"}
-
-
-def create_urf(client, data=make_urf_data()) -> dict:
-    """Create an entry in the database."""
-    return client.post(url, json=data)
+    def test_delete_nonexistent(self, client):
+        """Test deleting non-existent URF"""
+        response = client.delete(f"{url}9999")
+        assert response.status_code == 404
+        assert "Nenhum registro encontrado" in response.json["message"]
