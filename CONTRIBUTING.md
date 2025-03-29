@@ -116,6 +116,8 @@ O primeiro passo é clonar o repositório do projeto para o seu ambiente local.
 
 ## Testes
 
+A cada atualização é recomendado rodar todos os testes a fim de garantir o funcionamento do programa.
+
 ```sh
 pytest
 ```
