@@ -1,7 +1,7 @@
 import pandas as pd
 from ..paises.model import PaisModel
 from ..utils.sqlalchemy import SQLAlchemy
-from . import BATCH_SIZE
+from . import BATCH_SIZE, LIMIT
 
 baseurl = "https://balanca.economia.gov.br/balanca/bd/tabelas/PAIS.csv"
 
@@ -32,6 +32,8 @@ def importar(replace: bool = False):
         # Commit in batches
         if index % BATCH_SIZE == 0:
             db.session.commit()
+        if index == LIMIT:
+            break
 
     db.session.commit()
 

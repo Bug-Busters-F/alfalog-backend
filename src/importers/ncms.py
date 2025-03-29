@@ -1,7 +1,7 @@
 import pandas as pd
 from ..ncms.model import NCMModel
 from ..utils.sqlalchemy import SQLAlchemy
-from . import BATCH_SIZE
+from . import BATCH_SIZE, LIMIT
 
 baseurl = "https://balanca.economia.gov.br/balanca/bd/tabelas/NCM.csv"
 
@@ -32,6 +32,8 @@ def importar(replace: bool = False):
         # Commit in batches
         if index % BATCH_SIZE == 0:
             db.session.commit()
+        if index == LIMIT:
+            break
 
     # Efetua o commit após inserir todos os registros
     db.session.commit()

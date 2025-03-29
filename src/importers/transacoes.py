@@ -9,7 +9,7 @@ from src.transacoes.model import TransacaoModel as Transacao
 from src.vias.model import ViaModel as Via
 from src.urfs.model import URFModel as URF
 from src.ues.model import UEModel as UE
-from . import BATCH_SIZE
+from . import LIMIT
 
 BASE_URL = "https://balanca.economia.gov.br/balanca/bd/comexstat-bd/ncm/"
 TIPO = "EXP"
@@ -31,7 +31,7 @@ class DataLoader:
         df = df[df["QT_ESTAT"] != 0].copy()
         df = df[df["KG_LIQUIDO"] != 0].copy()
         df = df[df["VL_FOB"] != 0].copy()
-        return df.head(BATCH_SIZE)
+        return df.head(LIMIT)
 
     def processar_arquivo_2024(self):
         try:
