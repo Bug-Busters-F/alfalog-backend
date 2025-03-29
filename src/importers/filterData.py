@@ -9,11 +9,10 @@ from src.transacoes.model import TransacaoModel as Transacao
 from src.vias.model import ViaModel as Via
 from src.urfs.model import URFModel as URF
 from src.ues.model import UEModel as UE
+from . import BATCH_SIZE
 
 BASE_URL = "https://balanca.economia.gov.br/balanca/bd/comexstat-bd/ncm/"
 TIPO = "EXP"
-## Mude a linha abaixo para quantos registro quer inserir no banco 
-LIMITE_REGISTROS_TESTE = 100
 
 class DataLoader:
     def __init__(self, db_instance):
@@ -31,7 +30,7 @@ class DataLoader:
         df = df[df["QT_ESTAT"] != 0].copy()
         df = df[df["KG_LIQUIDO"] != 0].copy()
         df = df[df["VL_FOB"] != 0].copy()
-        return df.head(LIMITE_REGISTROS_TESTE)
+        return df.head(BATCH_SIZE)
 
     def processar_arquivo_2024(self):
         try: 
@@ -50,7 +49,7 @@ class DataLoader:
             print("Nenhum dado para carregar")
             return
 
-        chunk_size = 50  # Tamanho do lote, se for um numero grande de registros aumente o chunk_size
+        chunk_size = 100  # Tamanho do lote, se for um numero grande de registros aumente o chunk_size
         total_chunks = len(df) // chunk_size + (1 if len(df) % chunk_size != 0 else 0)
         
         for i in tqdm(range(total_chunks), desc="Carregando dados"):
@@ -126,16 +125,16 @@ class DataLoader:
                 # UE
                 codigo_ue = int(row['CO_UNID'])
                 if codigo_ue not in relacionamentos['ue']:
-                    codigo_ue_str = str(codigo_ue)  # Convertendo para string conforme o modelo
+                    codigo_ue_str = str(codigo_ue)
                     ue = self.db.session.query(UE).filter_by(codigo=codigo_ue_str).first()
                     if not ue:
                         ue = UE(
                             codigo=codigo_ue_str,
                             nome=f"Unidade Estatística {codigo_ue}",
-                            abreviacao=f"UE-{codigo_ue}"  # Campo obrigatório com valor padrão
+                            abreviacao=f"UE-{codigo_ue}"
                         )
                         self.db.session.add(ue)
-                        self.db.session.flush()  # Para obter o ID se necessário
+                        self.db.session.flush()
                     relacionamentos['ue'][codigo_ue] = ue
             
             # Cria transações
