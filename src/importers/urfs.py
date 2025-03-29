@@ -1,11 +1,12 @@
 import pandas as pd
 from ..urfs.model import URFModel
 from ..utils.sqlalchemy import SQLAlchemy
+from . import BATCH_SIZE
 
 baseurl = "https://balanca.economia.gov.br/balanca/bd/tabelas/URF.csv"
 
 
-def importar():
+def importar(replace: bool = False):
     """Importa dados de URFs do COMEX para o banco de dados."""
     exp_df_base = pd.read_csv(baseurl, sep=";", encoding="latin1")
 
@@ -17,13 +18,21 @@ def importar():
         if index == 0:
             continue
 
-        urf = URFModel()
-        urf.codigo = row["CO_URF"]  # Campo 'codigo' no Model
-        urf.nome = row["NO_URF"]  # Campo 'nome' no Model
+        urf = db.session.query(URFModel).filter_by(codigo=row["CO_URF"]).first()
+        if urf and not replace:
+            continue
+        elif not urf:
+            urf = URFModel()
+
+        urf.codigo = str(row["CO_URF"]).strip()
+        urf.nome = str(row["NO_URF"]).strip()
 
         db.session.add(urf)
 
-    # Efetua o commit após inserir todos os registros
+        # Commit in batches
+        if index % BATCH_SIZE == 0:
+            db.session.commit()
+
     db.session.commit()
 
 

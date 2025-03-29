@@ -1,11 +1,12 @@
 import pandas as pd
 from ..vias.model import ViaModel
 from ..utils.sqlalchemy import SQLAlchemy
+from . import BATCH_SIZE
 
 baseurl = "https://balanca.economia.gov.br/balanca/bd/tabelas/VIA.csv"
 
 
-def importar():
+def importar(replace: bool = False):
     """Importa dados de Vias do COMEX para o banco de dados."""
     exp_df_base = pd.read_csv(baseurl, sep=";", encoding="latin1")
 
@@ -17,12 +18,22 @@ def importar():
         if index == 0:
             continue
 
-        via = ViaModel()
-        via.codigo = row["CO_VIA"]  # corresponde ao campo 'codigo' no Model
-        via.nome = row["NO_VIA"]  # corresponde ao campo 'nome' no Model
+        via = db.session.query(ViaModel).filter_by(codigo=row["CO_VIA"]).first()
+        if via and not replace:
+            continue
+        elif not via:
+            via = ViaModel()
+
+        via.codigo = str(row["CO_VIA"]).strip()
+        via.nome = str(row["NO_VIA"]).strip()
 
         db.session.add(via)
-        db.session.commit()
+
+        # Commit in batches
+        if index % BATCH_SIZE == 0:
+            db.session.commit()
+
+    db.session.commit()
 
 
 if __name__ == "__main__":
