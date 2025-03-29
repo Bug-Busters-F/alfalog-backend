@@ -10,7 +10,7 @@ from src.utils.sqlalchemy import SQLAlchemy
 main = Blueprint("main", __name__)
 
 
-@main.route("/api/valor_agregado", methods=["POST"])
+@main.route("/api/valor-agregado", methods=["POST"])
 @marshal_with(valor_agregado_fields)
 def valor_agregado():
     """Retrieve Transações incluindo seu valor agregado."""
