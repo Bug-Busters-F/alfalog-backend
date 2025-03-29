@@ -1,7 +1,7 @@
 from src.core.base import BaseModel
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Integer, String, BigInteger, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger
+from sqlalchemy.ext.hybrid import hybrid_property
 from src.ncms.model import NCMModel
 from src.paises.model import PaisModel
 from src.ues.model import UEModel
@@ -23,10 +23,6 @@ class TransacaoModel(BaseModel):
     quantidade: Mapped[int] = mapped_column(BigInteger)
     peso: Mapped[int] = mapped_column(BigInteger)
     valor: Mapped[int] = mapped_column(BigInteger)
-    # quantidade: Mapped[int] = mapped_column(Integer) ## formato antigo caso seja removido os dados exagerados.
-    # peso: Mapped[int] = mapped_column(Integer)
-    # valor: Mapped[int] = mapped_column(Integer)
-
 
     # FKs
     ncm_id: Mapped[int] = mapped_column(ForeignKey(NCMModel.id, ondelete="CASCADE"))
@@ -42,8 +38,18 @@ class TransacaoModel(BaseModel):
     urf_id: Mapped[int] = mapped_column(ForeignKey(URFModel.id, ondelete="CASCADE"))
     urf: Mapped[URFModel] = relationship(back_populates="transacoes")
 
+    @hybrid_property
+    def valor_agregado(self):
+        if self.peso == 0:  # Prevent division by zero
+            return None
+        return round(self.valor / self.peso, 2)
+
+    @valor_agregado.expression
+    def valor_agregado(cls):
+        return func.round(cls.valor / cls.peso, 2)
+
     def __repr__(self):
         return f"Transação: código = {self.codigo!r}, nome = {self.nome!r}, \
             ano = {self.ano!r}, mes = {self.mes!r}, quantidade = {self.quantidade!r}, peso = {self.peso!r}, valor = {self.valor!r}, \
-            ncm_id = {self.ncm_id!r}, ue_id = {self.ue_id!r}, pais_id = {self.pais_id!r}, uf_id = {self.uf_id!r}, via_id = {self.via_id!r}, \
-            urf_id = {self.urf_id!r}."
+            valor agregado = {self.valor_agregado!r}, ncm_id = {self.ncm_id!r}, ue_id = {self.ue_id!r}, pais_id = {self.pais_id!r}, \
+            uf_id = {self.uf_id!r}, via_id = {self.via_id!r}, urf_id = {self.urf_id!r}."
