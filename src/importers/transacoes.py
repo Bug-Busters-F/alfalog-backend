@@ -26,11 +26,23 @@ class DataLoader:
         df = df[df["CO_UNID"] != 18].copy()
         df = df[~df["CO_PAIS"].isin([0, 990, 994, 995, 997, 998, 999])].copy()
         df = df[~df["CO_UF"].isin(["ND", "ZN", "ED", "RE", "MN", "CB", "EX"])].copy()
-        df = df[~df["CO_VIA"].isin([0, 3, 8, 10, 12, 13, 14, 99])].copy()
+        df = df[~df["CO_VIA"].isin([0, 8, 10, 11, 12, 13, 99])].copy()
         df = df[~df["CO_URF"].isin([0, 815400, 1010109, 8110000, 9999999])].copy()
         df = df[df["QT_ESTAT"] != 0].copy()
-        df = df[df["KG_LIQUIDO"] != 0].copy()
         df = df[df["VL_FOB"] != 0].copy()
+
+        # Aplicar filtro IQR para remover outliers no KG_LIQUIDO
+        Q1 = df["KG_LIQUIDO"].quantile(0.25)
+        Q3 = df["KG_LIQUIDO"].quantile(0.75)
+        IQR = Q3 - Q1
+
+        # Definir limites para outliers
+        lim_inferior = Q1 - 1.5 * IQR
+        lim_superior = Q3 + 1.5 * IQR
+
+        # Filtrar os dados
+        df = df[(df["KG_LIQUIDO"] >= lim_inferior) & (df["KG_LIQUIDO"] <= lim_superior)].copy() 
+
         return df.head(LIMIT)
 
     def processar_arquivo_2024(self):
