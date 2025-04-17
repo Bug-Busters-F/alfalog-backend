@@ -16,8 +16,44 @@ TIPO = "EXP"
 
 
 class DataLoader:
+
+    ncms: tuple
+    ues: dict  # key: nome, value: ID
+    paises: dict
+    ufs: dict
+    vias: dict
+    urfs: dict
+
     def __init__(self, db_instance):
         self.db = db_instance
+        # self.ncms =
+        self.ues = {}
+        self.paises = {}
+        self.ufs = {}
+        self.vias = {}
+        self.urfs = {}
+        self.load_dependencies()
+
+    def load_dependencies(self):
+        """
+        Carrega as dependências secundárias para dicionários onde
+        a chave será o nome do registro correspondente e o valor será seu ID.
+
+        Por exemplo:
+        vias = {
+            'Rodoviaria': 1,
+        }
+        """
+        entries = self.db.session.query(UE).all()
+        self.ues = {ue.nome: ue.id for ue in entries}
+        entries = self.db.session.query(Pais).all()
+        self.paises = {pais.nome: pais.id for pais in entries}
+        entries = self.db.session.query(UF).all()
+        self.ufs = {uf.nome: uf.id for uf in entries}
+        entries = self.db.session.query(Via).all()
+        self.vias = {via.nome: via.id for via in entries}
+        entries = self.db.session.query(URF).all()
+        self.urfs = {urf.nome: urf.id for urf in entries}
 
     def aplicar_filtros(self, df):
         if "SG_UF_NCM" in df.columns and "CO_UF" not in df.columns:
