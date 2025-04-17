@@ -10,10 +10,10 @@ from src.urfs.model import URFModel
 from src.vias.model import ViaModel
 
 
-class TransacaoModel(BaseModel):
+class ImportacaoModel(BaseModel):
     """Model da Transação."""
 
-    __tablename__ = "transacoes"
+    __tablename__ = "importacoes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     codigo: Mapped[str] = mapped_column(String(31), unique=True)
@@ -26,17 +26,17 @@ class TransacaoModel(BaseModel):
 
     # FKs
     ncm_id: Mapped[int] = mapped_column(ForeignKey(NCMModel.id, ondelete="CASCADE"))
-    ncm: Mapped[NCMModel] = relationship(back_populates="transacoes")
+    ncm: Mapped[NCMModel] = relationship(back_populates="importacoes")
     ue_id: Mapped[int] = mapped_column(ForeignKey(UEModel.id, ondelete="CASCADE"))
-    ue: Mapped[UEModel] = relationship(back_populates="transacoes")
+    ue: Mapped[UEModel] = relationship(back_populates="importacoes")
     pais_id: Mapped[int] = mapped_column(ForeignKey(PaisModel.id, ondelete="CASCADE"))
-    pais: Mapped[PaisModel] = relationship(back_populates="transacoes")
+    pais: Mapped[PaisModel] = relationship(back_populates="importacoes")
     uf_id: Mapped[int] = mapped_column(ForeignKey(UFModel.id, ondelete="CASCADE"))
-    uf: Mapped[UFModel] = relationship(back_populates="transacoes")
+    uf: Mapped[UFModel] = relationship(back_populates="importacoes")
     via_id: Mapped[int] = mapped_column(ForeignKey(ViaModel.id, ondelete="CASCADE"))
-    via: Mapped[ViaModel] = relationship(back_populates="transacoes")
+    via: Mapped[ViaModel] = relationship(back_populates="importacoes")
     urf_id: Mapped[int] = mapped_column(ForeignKey(URFModel.id, ondelete="CASCADE"))
-    urf: Mapped[URFModel] = relationship(back_populates="transacoes")
+    urf: Mapped[URFModel] = relationship(back_populates="importacoes")
 
     @hybrid_property
     def valor_agregado(self):

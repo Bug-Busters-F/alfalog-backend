@@ -6,7 +6,7 @@ from src.ufs.model import UFModel
 from src.urfs.model import URFModel
 from src.utils import sqlalchemy
 from src.vias.model import ViaModel
-from .model import TransacaoModel
+from .model import ImportacaoModel
 from .fields import model_fields
 from .request import model_args
 
@@ -15,13 +15,13 @@ from flask_restful import Resource, marshal_with, abort
 from werkzeug import exceptions
 
 
-class Transacoes(BaseResource):
+class Importacoes(BaseResource):
     """Model's collection routing (controller)."""
 
     @marshal_with(model_fields)
     def get(self):
         """Get all entries."""
-        entries = self.db.session.query(TransacaoModel).all()
+        entries = self.db.session.query(ImportacaoModel).all()
         return entries
 
     @marshal_with(model_fields)
@@ -32,12 +32,12 @@ class Transacoes(BaseResource):
 
         # Check whether codigo already exists
         existing_entry = (
-            self.db.session.query(TransacaoModel)
+            self.db.session.query(ImportacaoModel)
             .filter_by(codigo=args["codigo"])
             .first()
         )
         if existing_entry:
-            return abort(422, message="Já existe uma Transacao com esse código.")
+            return abort(422, message="Já existe uma Importacao com esse código.")
 
         ncm = self.db.session.get(NCMModel, args["ncm_id"])
         if not ncm:
@@ -58,7 +58,7 @@ class Transacoes(BaseResource):
         if not urf:
             return abort(404, message="URF não encontrado.")
 
-        entry = TransacaoModel(
+        entry = ImportacaoModel(
             codigo=args["codigo"],
             nome=args["nome"],
             ano=args["ano"],
@@ -78,12 +78,12 @@ class Transacoes(BaseResource):
         return entry, 201
 
 
-class Transacao(BaseResource):
+class Importacao(BaseResource):
     """Model's routing (controller)."""
 
     @marshal_with(model_fields)
     def get(self, id):
-        entry = self.db.session.query(TransacaoModel).filter_by(id=id).first()
+        entry = self.db.session.query(ImportacaoModel).filter_by(id=id).first()
         if not entry:
             abort(404, message="Nenhum registro encontrado.")
         return entry
@@ -104,18 +104,18 @@ class Transacao(BaseResource):
             http_error_code=400,
         )
 
-        entry = self.db.session.query(TransacaoModel).filter_by(id=id).first()
+        entry = self.db.session.query(ImportacaoModel).filter_by(id=id).first()
         if not entry:
             abort(404, message="Nenhum registro encontrado.")
 
         # Check whether codigo already exists
         existing_entry = (
-            self.db.session.query(TransacaoModel)
+            self.db.session.query(ImportacaoModel)
             .filter_by(codigo=args["codigo"])
             .first()
         )
         if existing_entry and existing_entry.id != entry.id:
-            return abort(422, message="Já existe uma Transacao com esse código.")
+            return abort(422, message="Já existe uma Importacao com esse código.")
 
         # FKs
         ncm = self.db.session.get(NCMModel, args["ncm_id"])
@@ -155,7 +155,7 @@ class Transacao(BaseResource):
 
     @marshal_with(model_fields)
     def delete(self, id):
-        entry = self.db.session.query(TransacaoModel).filter_by(id=id).first()
+        entry = self.db.session.query(ImportacaoModel).filter_by(id=id).first()
         if not entry:
             abort(404, message="Nenhum registro encontrado.")
         self.db.session.delete(entry)
