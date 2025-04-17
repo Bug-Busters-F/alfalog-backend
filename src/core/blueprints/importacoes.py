@@ -1,8 +1,8 @@
 import marshal
 from flask import Blueprint, request
 from flask_restful import marshal_with
-from .request import valor_agregado_args, cargas_movimentadas_args
-from .fields import valor_agregado_fields, cargas_movimentadas_fields
+from ..request import valor_agregado_args, cargas_movimentadas_args
+from ..fields import valor_agregado_fields, cargas_movimentadas_fields
 from src.importacoes.model import ImportacaoModel
 from src.ufs.model import UFModel
 from src.utils.sqlalchemy import SQLAlchemy
