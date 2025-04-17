@@ -5,7 +5,8 @@ from src.utils.sqlalchemy import SQLAlchemy
 from src.ufs.model import UFModel as UF
 from src.ncms.model import NCMModel as NCM
 from src.paises.model import PaisModel as Pais
-from src.transacoes.model import TransacaoModel as Transacao
+
+# from src.transacoes.model import TransacaoModel as Transacao
 from src.vias.model import ViaModel as Via
 from src.urfs.model import URFModel as URF
 from src.ues.model import UEModel as UE
@@ -54,6 +55,8 @@ class DataLoader:
         self.vias = {via.nome: via.id for via in entries}
         entries = self.db.session.query(URF).all()
         self.urfs = {urf.nome: urf.id for urf in entries}
+        entries = self.db.session.query(NCM).all()
+        self.ncms = {ncm.descricao: ncm.id for ncm in entries}
 
     def aplicar_filtros(self, df):
         if "SG_UF_NCM" in df.columns and "CO_UF" not in df.columns:
