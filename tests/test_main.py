@@ -1,12 +1,12 @@
 import pytest
 from flask import jsonify
 from faker import Faker
-from src.transacoes.model import TransacaoModel
+from src.exportacoes.model import ExportacaoModel
 from src.ufs.model import UFModel
-from tests.test_transacoes import (
-    create_transacao_db,
-    create_transacao_dependencies,
-    make_transacao_data,
+from tests.test_exportacoes import (
+    create_exportacao_db,
+    create_exportacao_dependencies,
+    make_exportacao_data,
 )
 from tests.test_ufs import create_uf_db
 
@@ -14,14 +14,14 @@ fake = Faker("pt_BR")
 
 
 class TestValorAgregadoRoute:
-    url = "/api/valor-agregado"
+    url = "/api/exportacoes/valor-agregado"
 
     def test_successful_calculation(self, client, session):
         """Test that returns correct valor_agregado calculation in descending order."""
 
-        trans1 = create_transacao_db(session)
-        trans2 = create_transacao_db(session)
-        trans3 = create_transacao_db(session)
+        trans1 = create_exportacao_db(session)
+        trans2 = create_exportacao_db(session)
+        trans3 = create_exportacao_db(session)
         trans2.ano = trans1.ano
         trans2.uf = trans1.uf
         trans3.ano = trans1.ano
@@ -79,8 +79,8 @@ class TestValorAgregadoRoute:
 
     def test_filter_by_year(self, client, session):
         """Test that year filter works correctly"""
-        trans1 = create_transacao_db(session)
-        trans2 = create_transacao_db(session)
+        trans1 = create_exportacao_db(session)
+        trans2 = create_exportacao_db(session)
         trans2.uf = trans1.uf
         trans1.ano = 2024
         trans2.ano = 2025
@@ -99,7 +99,7 @@ class TestValorAgregadoRoute:
 
 
 class TestCargasMovimentadasRoute:
-    url = "/api/cargas_movimentadas"
+    url = "/api/exportacoes/cargas-movimentadas"
 
     def test_successful_response(self, client, session):
         """Test successful response with correct sorting"""
@@ -107,9 +107,9 @@ class TestCargasMovimentadasRoute:
         uf = UFModel(codigo="35", nome="São Paulo", sigla="SP", nome_regiao="Sudeste")
         session.add(uf)
 
-        trans1 = create_transacao_db(session)
-        trans2 = create_transacao_db(session)
-        trans3 = create_transacao_db(session)
+        trans1 = create_exportacao_db(session)
+        trans2 = create_exportacao_db(session)
+        trans3 = create_exportacao_db(session)
         trans2.ano = trans1.ano
         trans2.uf = trans1.uf
         trans3.ano = trans1.ano
@@ -161,8 +161,8 @@ class TestCargasMovimentadasRoute:
 
     def test_filter_by_year(self, client, session):
         """Test that year filter works correctly."""
-        trans1 = create_transacao_db(session)
-        trans2 = create_transacao_db(session)
+        trans1 = create_exportacao_db(session)
+        trans2 = create_exportacao_db(session)
         trans2.uf = trans1.uf
         trans1.ano = 2024
         trans2.ano = 2025
