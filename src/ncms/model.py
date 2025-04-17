@@ -14,7 +14,10 @@ class NCMModel(BaseModel):
     descricao: Mapped[str] = mapped_column(Text)
 
     # FK
-    transacoes: Mapped[List["TransacaoModel"]] = relationship(
+    exportacoes: Mapped[List["ExportacaoModel"]] = relationship(
+        back_populates="ncm", cascade="all, delete-orphan"
+    )
+    importacoes: Mapped[List["ImportacaoModel"]] = relationship(
         back_populates="ncm", cascade="all, delete-orphan"
     )
 
