@@ -25,17 +25,35 @@ class ExportacaoModel(BaseModel):
     valor: Mapped[int] = mapped_column(BigInteger)
 
     # FKs
-    ncm_id: Mapped[int] = mapped_column(ForeignKey(NCMModel.id, ondelete="CASCADE"))
+    ncm_id: Mapped[int] = mapped_column(
+        ForeignKey(NCMModel.id, ondelete="CASCADE"),
+        nullable=True,
+    )
     ncm: Mapped[NCMModel] = relationship(back_populates="exportacoes")
-    ue_id: Mapped[int] = mapped_column(ForeignKey(UEModel.id, ondelete="CASCADE"))
+    ue_id: Mapped[int] = mapped_column(
+        ForeignKey(UEModel.id, ondelete="CASCADE"),
+        nullable=True,
+    )
     ue: Mapped[UEModel] = relationship(back_populates="exportacoes")
-    pais_id: Mapped[int] = mapped_column(ForeignKey(PaisModel.id, ondelete="CASCADE"))
+    pais_id: Mapped[int] = mapped_column(
+        ForeignKey(PaisModel.id, ondelete="CASCADE"),
+        nullable=True,
+    )
     pais: Mapped[PaisModel] = relationship(back_populates="exportacoes")
-    uf_id: Mapped[int] = mapped_column(ForeignKey(UFModel.id, ondelete="CASCADE"))
+    uf_id: Mapped[int] = mapped_column(
+        ForeignKey(UFModel.id, ondelete="CASCADE"),
+        nullable=True,
+    )
     uf: Mapped[UFModel] = relationship(back_populates="exportacoes")
-    via_id: Mapped[int] = mapped_column(ForeignKey(ViaModel.id, ondelete="CASCADE"))
+    via_id: Mapped[int] = mapped_column(
+        ForeignKey(ViaModel.id, ondelete="CASCADE"),
+        nullable=True,
+    )
     via: Mapped[ViaModel] = relationship(back_populates="exportacoes")
-    urf_id: Mapped[int] = mapped_column(ForeignKey(URFModel.id, ondelete="CASCADE"))
+    urf_id: Mapped[int] = mapped_column(
+        ForeignKey(URFModel.id, ondelete="CASCADE"),
+        nullable=True,
+    )
     urf: Mapped[URFModel] = relationship(back_populates="exportacoes")
 
     @hybrid_property

@@ -1,3 +1,4 @@
+from pyrsistent import optional
 from src.core.base import BaseModel
 from sqlalchemy import ForeignKey, Integer, String, BigInteger, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -25,17 +26,35 @@ class ImportacaoModel(BaseModel):
     valor: Mapped[int] = mapped_column(BigInteger)
 
     # FKs
-    ncm_id: Mapped[int] = mapped_column(ForeignKey(NCMModel.id, ondelete="CASCADE"))
+    ncm_id: Mapped[int] = mapped_column(
+        ForeignKey(NCMModel.id, ondelete="CASCADE"),
+        nullable=True,
+    )
     ncm: Mapped[NCMModel] = relationship(back_populates="importacoes")
-    ue_id: Mapped[int] = mapped_column(ForeignKey(UEModel.id, ondelete="CASCADE"))
+    ue_id: Mapped[int] = mapped_column(
+        ForeignKey(UEModel.id, ondelete="CASCADE"),
+        nullable=True,
+    )
     ue: Mapped[UEModel] = relationship(back_populates="importacoes")
-    pais_id: Mapped[int] = mapped_column(ForeignKey(PaisModel.id, ondelete="CASCADE"))
+    pais_id: Mapped[int] = mapped_column(
+        ForeignKey(PaisModel.id, ondelete="CASCADE"),
+        nullable=True,
+    )
     pais: Mapped[PaisModel] = relationship(back_populates="importacoes")
-    uf_id: Mapped[int] = mapped_column(ForeignKey(UFModel.id, ondelete="CASCADE"))
+    uf_id: Mapped[int] = mapped_column(
+        ForeignKey(UFModel.id, ondelete="CASCADE"),
+        nullable=True,
+    )
     uf: Mapped[UFModel] = relationship(back_populates="importacoes")
-    via_id: Mapped[int] = mapped_column(ForeignKey(ViaModel.id, ondelete="CASCADE"))
+    via_id: Mapped[int] = mapped_column(
+        ForeignKey(ViaModel.id, ondelete="CASCADE"),
+        nullable=True,
+    )
     via: Mapped[ViaModel] = relationship(back_populates="importacoes")
-    urf_id: Mapped[int] = mapped_column(ForeignKey(URFModel.id, ondelete="CASCADE"))
+    urf_id: Mapped[int] = mapped_column(
+        ForeignKey(URFModel.id, ondelete="CASCADE"),
+        nullable=True,
+    )
     urf: Mapped[URFModel] = relationship(back_populates="importacoes")
 
     @hybrid_property
