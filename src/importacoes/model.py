@@ -1,4 +1,3 @@
-from pyrsistent import optional
 from src.core.base import BaseModel
 from sqlalchemy import ForeignKey, Integer, String, BigInteger, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
