@@ -10,7 +10,6 @@ model_fields = {
         "nome": fields.String,
         "ano": fields.Integer,
         "mes": fields.Integer,
-        "quantidade": fields.Integer,
         "peso": fields.Integer,
         "valor": fields.Integer,
         "valor_agregado": fields.Float,

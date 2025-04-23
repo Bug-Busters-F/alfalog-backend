@@ -1,3 +1,4 @@
+from typing import Optional
 from src.core.base import BaseModel
 from sqlalchemy import ForeignKey, Integer, String, BigInteger, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -16,41 +17,38 @@ class ImportacaoModel(BaseModel):
     __tablename__ = "importacoes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    codigo: Mapped[str] = mapped_column(String(31), unique=True)
-    nome: Mapped[str] = mapped_column(String(255))
     ano: Mapped[int] = mapped_column(Integer)
     mes: Mapped[int] = mapped_column(Integer)
-    quantidade: Mapped[int] = mapped_column(BigInteger)
     peso: Mapped[int] = mapped_column(BigInteger)
     valor: Mapped[int] = mapped_column(BigInteger)
 
     # FKs
-    ncm_id: Mapped[int] = mapped_column(
+    ncm_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey(NCMModel.id, ondelete="CASCADE"),
         nullable=True,
     )
     ncm: Mapped[NCMModel] = relationship(back_populates="importacoes")
-    ue_id: Mapped[int] = mapped_column(
+    ue_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey(UEModel.id, ondelete="CASCADE"),
         nullable=True,
     )
     ue: Mapped[UEModel] = relationship(back_populates="importacoes")
-    pais_id: Mapped[int] = mapped_column(
+    pais_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey(PaisModel.id, ondelete="CASCADE"),
         nullable=True,
     )
     pais: Mapped[PaisModel] = relationship(back_populates="importacoes")
-    uf_id: Mapped[int] = mapped_column(
+    uf_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey(UFModel.id, ondelete="CASCADE"),
         nullable=True,
     )
     uf: Mapped[UFModel] = relationship(back_populates="importacoes")
-    via_id: Mapped[int] = mapped_column(
+    via_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey(ViaModel.id, ondelete="CASCADE"),
         nullable=True,
     )
     via: Mapped[ViaModel] = relationship(back_populates="importacoes")
-    urf_id: Mapped[int] = mapped_column(
+    urf_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey(URFModel.id, ondelete="CASCADE"),
         nullable=True,
     )
@@ -67,7 +65,7 @@ class ImportacaoModel(BaseModel):
         return func.round(cls.valor / cls.peso, 2)
 
     def __repr__(self):
-        return f"Transação: código = {self.codigo!r}, nome = {self.nome!r}, \
-            ano = {self.ano!r}, mes = {self.mes!r}, quantidade = {self.quantidade!r}, peso = {self.peso!r}, valor = {self.valor!r}, \
+        return f"Transação: \
+            ano = {self.ano!r}, mes = {self.mes!r}, peso = {self.peso!r}, valor = {self.valor!r}, \
             valor agregado = {self.valor_agregado!r}, ncm_id = {self.ncm_id!r}, ue_id = {self.ue_id!r}, pais_id = {self.pais_id!r}, \
             uf_id = {self.uf_id!r}, via_id = {self.via_id!r}, urf_id = {self.urf_id!r}."

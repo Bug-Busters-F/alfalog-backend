@@ -30,49 +30,44 @@ class Exportacoes(BaseResource):
         # input validation
         args = model_args.parse_args(strict=True)
 
-        # Check whether codigo already exists
-        existing_entry = (
-            self.db.session.query(ExportacaoModel)
-            .filter_by(codigo=args["codigo"])
-            .first()
-        )
-        if existing_entry:
-            return abort(422, message="Já existe uma Exportacao com esse código.")
-
-        ncm = self.db.session.get(NCMModel, args["ncm_id"])
-        if not ncm:
-            return abort(404, message="NCM não encontrado.")
-        ue = self.db.session.get(UEModel, args["ue_id"])
-        if not ue:
-            return abort(404, message="UE não encontrado.")
-        pais = self.db.session.get(PaisModel, args["pais_id"])
-        if not pais:
-            return abort(404, message="País não encontrado.")
-        uf = self.db.session.get(UFModel, args["uf_id"])
-        if not uf:
-            return abort(404, message="UF não encontrado.")
-        via = self.db.session.get(ViaModel, args["via_id"])
-        if not via:
-            return abort(404, message="Via não encontrado.")
-        urf = self.db.session.get(URFModel, args["urf_id"])
-        if not urf:
-            return abort(404, message="URF não encontrado.")
-
         entry = ExportacaoModel(
-            codigo=args["codigo"],
-            nome=args["nome"],
             ano=args["ano"],
             mes=args["mes"],
-            quantidade=args["quantidade"],
             peso=args["peso"],
             valor=args["valor"],
-            ncm=ncm,
-            ue=ue,
-            pais=pais,
-            uf=uf,
-            via=via,
-            urf=urf,
         )
+
+        if "ncm_id" in args:
+            ncm = self.db.session.get(NCMModel, args["ncm_id"])
+            if not ncm:
+                return abort(404, message="NCM não encontrado.")
+            entry.ncm = ncm
+        if "ue_id" in args:
+            ue = self.db.session.get(UEModel, args["ue_id"])
+            if not ue:
+                return abort(404, message="UE não encontrado.")
+            entry.ue = ue
+        if "pais_id" in args:
+            pais = self.db.session.get(PaisModel, args["pais_id"])
+            if not pais:
+                return abort(404, message="País não encontrado.")
+            entry.pais = pais
+        if "uf_id" in args:
+            uf = self.db.session.get(UFModel, args["uf_id"])
+            if not uf:
+                return abort(404, message="UF não encontrado.")
+            entry.uf = uf
+        if "via_id" in args:
+            via = self.db.session.get(ViaModel, args["via_id"])
+            if not via:
+                return abort(404, message="Via não encontrado.")
+            entry.via = via
+        if "urf_id" in args:
+            urf = self.db.session.get(URFModel, args["urf_id"])
+            if not urf:
+                return abort(404, message="URF não encontrado.")
+            entry.urf = urf
+
         self.db.session.add(entry)
         self.db.session.commit()
         return entry, 201
@@ -108,48 +103,42 @@ class Exportacao(BaseResource):
         if not entry:
             abort(404, message="Nenhum registro encontrado.")
 
-        # Check whether codigo already exists
-        existing_entry = (
-            self.db.session.query(ExportacaoModel)
-            .filter_by(codigo=args["codigo"])
-            .first()
-        )
-        if existing_entry and existing_entry.id != entry.id:
-            return abort(422, message="Já existe uma Exportacao com esse código.")
-
         # FKs
-        ncm = self.db.session.get(NCMModel, args["ncm_id"])
-        if not ncm:
-            return abort(404, message="NCM não encontrado.")
-        ue = self.db.session.get(UEModel, args["ue_id"])
-        if not ue:
-            return abort(404, message="UE não encontrado.")
-        pais = self.db.session.get(PaisModel, args["pais_id"])
-        if not pais:
-            return abort(404, message="País não encontrado.")
-        uf = self.db.session.get(UFModel, args["uf_id"])
-        if not uf:
-            return abort(404, message="UF não encontrado.")
-        via = self.db.session.get(ViaModel, args["via_id"])
-        if not via:
-            return abort(404, message="Via não encontrado.")
-        urf = self.db.session.get(URFModel, args["urf_id"])
-        if not urf:
-            return abort(404, message="URF não encontrado.")
+        if "ncm_id" in args:
+            ncm = self.db.session.get(NCMModel, args["ncm_id"])
+            if not ncm:
+                return abort(404, message="NCM não encontrado.")
+            entry.ncm = ncm
+        if "ue_id" in args:
+            ue = self.db.session.get(UEModel, args["ue_id"])
+            if not ue:
+                return abort(404, message="UE não encontrado.")
+            entry.ue = ue
+        if "pais_id" in args:
+            pais = self.db.session.get(PaisModel, args["pais_id"])
+            if not pais:
+                return abort(404, message="País não encontrado.")
+            entry.pais = pais
+        if "uf_id" in args:
+            uf = self.db.session.get(UFModel, args["uf_id"])
+            if not uf:
+                return abort(404, message="UF não encontrado.")
+            entry.uf = uf
+        if "via_id" in args:
+            via = self.db.session.get(ViaModel, args["via_id"])
+            if not via:
+                return abort(404, message="Via não encontrado.")
+            entry.via = via
+        if "urf_id" in args:
+            urf = self.db.session.get(URFModel, args["urf_id"])
+            if not urf:
+                return abort(404, message="URF não encontrado.")
+            entry.urf = urf
 
-        entry.codigo = args["codigo"]
-        entry.nome = args["nome"]
         entry.ano = args["ano"]
         entry.mes = args["mes"]
-        entry.quantidade = args["quantidade"]
         entry.peso = args["peso"]
         entry.valor = args["valor"]
-        entry.ncm = ncm
-        entry.ue = ue
-        entry.pais = pais
-        entry.uf = uf
-        entry.via = via
-        entry.urf = urf
         self.db.session.commit()
         return None, 204
 
