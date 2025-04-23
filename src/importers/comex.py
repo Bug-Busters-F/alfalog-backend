@@ -258,8 +258,12 @@ def transacoes(ctx):
     try:
         # importar(replace == "sim")
         db = SQLAlchemy.get_instance()
+        # Descomente as linha abaixo caso queira importar dados de EXPORTACOES
         caminho_csv = "./data/dados_comex_EXP_2014_2024.csv"
         importar_dados(db, caminho_csv, 'exportacoes')
+        # Descomente essa linha caso queira importar dados de IMPORTACOES
+        # caminho_csv_imp = "./data/dados_comex_IMP_2014_2024.csv"
+        # importar_dados(db, caminho_csv_imp, 'importacoes')
         click.echo("✅ Transações atualizadas.")
     except Exception as e:
         click.echo(f"❌ Erro ao import Transações: {str(e)}", err=True)

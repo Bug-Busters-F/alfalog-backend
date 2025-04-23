@@ -41,7 +41,7 @@ class DataLoader:
                 pbar.update(len(chunk))
 
 
-def importar_dados(db, caminho_csv, tipo_dado='exportacoes'):
+def importar_dados(db, caminho_csv, tipo_dado='importacoes'):
     loader = DataLoader(db)
     chunksize = 100_000
     dfs_processed = []
@@ -86,5 +86,8 @@ if __name__ == "__main__":
     app = create_app()
     with app.app_context():
         db = SQLAlchemy.get_instance()
-        importar_dados(db, "./data/dados_comex_EXP_2014_2024.csv", 'exportacoes')
+        # chame as funcoes no /comex.py
+
+        #aqui somente exemplos
+        # importar_dados(db, "./data/dados_comex_EXP_2014_2024.csv", 'exportacoes')
         # importar_dados(db, "./data/dados_comex_IMP_2014_2024.csv", 'importacoes')
