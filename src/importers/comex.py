@@ -282,7 +282,7 @@ def importacoes(ctx):
     try:
         # importar(replace == "sim")
         db = SQLAlchemy.get_instance()
-        caminho_csv = "./data/dados_comex_EXP_2014_2024.csv"
+        caminho_csv = "./data/dados_comex_IMP_2014_2024.csv"
         importar_dados(db, caminho_csv)
         click.echo("✅ Transações atualizadas.")
     except Exception as e:
