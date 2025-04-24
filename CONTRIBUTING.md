@@ -96,7 +96,19 @@ O primeiro passo é clonar o repositório do projeto para o seu ambiente local.
 
    1. Opcionalmente, você pode executar os comandos SQL em `database/seed.sql` diretamente no Banco de Dados para testes
 
-7. Caso queira, você pode importar os dados da base do COMEX executando o seguinte comando:
+7. Va até o [Google Colab](https://colab.research.google.com/drive/1WRSAEERIYsReXWyuLLLTs28WkV41tFyW?usp=sharing) da limpeza e execute a limpeza dos dados, após executado, será salvo dois arquivos .csv no seu Google Drive no diretório /comex_data
+    
+
+8. Após baixar ambos os arquivos crie uma pasta na raiz do projeto /data e insira ambos os arquivos .csv, nomeados como:
+
+    ```sh
+    # arquivo limpo de exportações
+        dados_comex_EXP_2014_2024.csv
+    # arquivo limpo de importações
+        dados_comex_IMP_2014_2024.csv
+    ```
+
+8. Caso queira, você pode importar os dados da base do COMEX executando o seguinte comando:
 
     ```sh
     flask comex update
@@ -104,13 +116,21 @@ O primeiro passo é clonar o repositório do projeto para o seu ambiente local.
     flask comex update --help # para conhecer as opções
     ```
 
-8. Execute o servidor Flask
+9. Caso queira importar somente um dos tipos de dados ('Importações' ou 'Exportações) execute estes comandos:
+
+     ```sh
+    flask comex update importacoes # para dados da importação
+    # or
+    flask comex update exportacoes # para dados da exportação
+    ```
+
+9. Execute o servidor Flask
 
     ```sh
     flask run
     ```
 
-9.  Abra em um navegador: [http://localhost:5000](http://localhost:5000)
+10.  Abra em um navegador: [http://localhost:5000](http://localhost:5000)
 
 ---
 
