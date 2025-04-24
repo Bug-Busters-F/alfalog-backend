@@ -6,11 +6,8 @@ from flask_restful import fields
 model_fields = {
     "data": {
         "id": fields.Integer,
-        "codigo": fields.String,
-        "nome": fields.String,
         "ano": fields.Integer,
         "mes": fields.Integer,
-        "quantidade": fields.Integer,
         "peso": fields.Integer,
         "valor": fields.Integer,
         "valor_agregado": fields.Float,
