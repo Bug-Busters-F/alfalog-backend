@@ -1,10 +1,12 @@
 import marshal
 from flask import Blueprint, request
 from flask_restful import marshal_with
+from sqlalchemy import func, text
 from ..request import valor_agregado_args, cargas_movimentadas_args
 from ..fields import valor_agregado_fields, cargas_movimentadas_fields
 from src.importacoes.model import ImportacaoModel
 from src.ufs.model import UFModel
+from src.ncms.model import NCMModel
 from src.utils.sqlalchemy import SQLAlchemy
 
 
@@ -20,13 +22,38 @@ def valor_agregado():
 
     db = SQLAlchemy.get_instance()
 
-    entries = (
-        db.session.query(ImportacaoModel)
+    base_query = (
+        db.session.query(
+            ImportacaoModel.id,
+            ImportacaoModel.ano,
+            ImportacaoModel.mes,
+            ImportacaoModel.peso,
+            ImportacaoModel.valor,
+            (ImportacaoModel.valor / func.nullif(ImportacaoModel.peso, 0)).label(
+                "valor_agregado"
+            ),  # Run on MySQL. Best for large datasets.
+            ImportacaoModel.ncm_id,
+            ImportacaoModel.ue_id,
+            ImportacaoModel.pais_id,
+            ImportacaoModel.uf_id,
+            ImportacaoModel.via_id,
+            ImportacaoModel.urf_id,
+            NCMModel.descricao.label("ncm_descricao"),
+        )
         .join(UFModel)
-        .filter(UFModel.id == args["uf_id"], ImportacaoModel.ano == args["ano"])
-        .order_by(ImportacaoModel.valor_agregado.desc())
-        .all()
+        .join(NCMModel)
+        .filter(UFModel.id == args["uf_id"])
     )
+
+    # filtering
+    ano_inicial = args["ano_inicial"] if "ano_inicial" in args else None
+    base_query = _filter_year_or_period(
+        base_query,
+        args["ano"],
+        ano_inicial,
+    )
+
+    entries = base_query.order_by(text("valor_agregado DESC")).all()
 
     return entries
 
@@ -40,16 +67,36 @@ def cargas_movimentadas():
 
     db = SQLAlchemy.get_instance()
 
-    entries = (
+    base_query = (
         db.session.query(
             ImportacaoModel.id,
+            ImportacaoModel.ano,
+            ImportacaoModel.mes,
             ImportacaoModel.peso,
             ImportacaoModel.ncm_id,
+            ImportacaoModel.uf_id,
+            NCMModel.descricao.label("ncm_descricao"),
         )
         .join(UFModel)
-        .filter(UFModel.id == args["uf_id"], ImportacaoModel.ano == args["ano"])
-        .order_by(db.desc(ImportacaoModel.peso))
-        .all()
+        .join(NCMModel)
+        .filter(UFModel.id == args["uf_id"])
     )
 
+    # filtering
+    ano_inicial = args["ano_inicial"] if "ano_inicial" in args else None
+    base_query = _filter_year_or_period(
+        base_query,
+        args["ano"],
+        ano_inicial,
+    )
+
+    entries = base_query.order_by(db.desc(ImportacaoModel.peso)).all()
+
     return entries
+
+
+def _filter_year_or_period(query, year_end: int, year_start: int = None):
+    """Add year or period filtering to a query."""
+    if year_start:
+        return query.filter(ImportacaoModel.ano.between(year_start, year_end))
+    return query.filter(ImportacaoModel.ano == year_end)
