@@ -11,3 +11,13 @@ cargas_movimentadas_fields = {
     # FKs
     "ncm_id": fields.Integer,
 }
+
+vias_fields = {
+    "via_id": fields.Integer,
+    "qtd": fields.Integer,
+}
+
+valor_agregado_por_estado_fields = {
+    "uf_id": fields.Integer,
+    "valor_agregado_total": fields.Integer,
+}
