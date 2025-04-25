@@ -11,3 +11,8 @@ cargas_movimentadas_fields = {
     # FKs
     "ncm_id": fields.Integer,
 }
+
+balanca_comercial_fields = {
+    "ano": fields.Integer,
+    "valor": fields.Float,
+}
