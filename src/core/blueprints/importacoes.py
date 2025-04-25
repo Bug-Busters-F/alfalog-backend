@@ -95,6 +95,26 @@ def cargas_movimentadas():
     return entries
 
 
+@importacoes.route("/api/importacoes/download", methods=["GET"])
+def download_exportacoes():
+    """Download the original CSV file."""
+    import os
+    from flask import send_file, abort, current_app
+
+    base_dir = os.path.dirname(current_app.root_path)
+    csv_path = os.path.join(base_dir, "data", "dados_comex_IMP_2014_2024.csv")
+
+    if not os.path.exists(csv_path):
+        abort(404, description="File not found.")
+
+    return send_file(
+        csv_path,
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name="importacoes.csv",
+    )
+
+
 def _filter_year_or_period(query, year_end: int, year_start: int = None):
     """Add year or period filtering to a query."""
     if year_start:
