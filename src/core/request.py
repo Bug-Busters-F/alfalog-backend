@@ -44,10 +44,16 @@ vias_utilizadas_args.add_argument(
     help="ID da UF inválido.",
 )
 
-valor_agregado_geral_args = reqparse.RequestParser()
-valor_agregado_geral_args.add_argument(
+urf_utilizadas_args = reqparse.RequestParser()
+urf_utilizadas_args.add_argument(
     "ano",
     type=int,
     required=True,
     help="Um ano deve ser informado.",
+)
+urf_utilizadas_args.add_argument(
+    "uf_id",
+    type=int,
+    required=True,
+    help="ID da UF inválido.",
 )

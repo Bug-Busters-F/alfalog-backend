@@ -17,7 +17,7 @@ vias_fields = {
     "qtd": fields.Integer,
 }
 
-valor_agregado_por_estado_fields = {
-    "uf_id": fields.Integer,
-    "valor_agregado_total": fields.Integer,
+urfs_fields = {
+    "urf_id": fields.Integer,
+    "qtd": fields.Integer,
 }
