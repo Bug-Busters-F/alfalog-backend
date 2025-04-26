@@ -15,6 +15,12 @@ valor_agregado_args.add_argument(
     required=True,
     help="Um ano deve ser informado.",
 )
+valor_agregado_args.add_argument(
+    "ano_inicial",
+    type=int,
+    required=False,
+    help="Informe um ano de início para visualizar um período.",
+)
 
 cargas_movimentadas_args = reqparse.RequestParser()
 cargas_movimentadas_args.add_argument(
@@ -28,6 +34,12 @@ cargas_movimentadas_args.add_argument(
     type=int,
     required=True,
     help="Um ano deve ser informado.",
+)
+cargas_movimentadas_args.add_argument(
+    "ano_inicial",
+    type=int,
+    required=False,
+    help="Informe um ano de início para visualizar um período.",
 )
 
 vias_utilizadas_args = reqparse.RequestParser()
