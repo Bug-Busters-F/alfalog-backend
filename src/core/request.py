@@ -15,6 +15,18 @@ valor_agregado_args.add_argument(
     required=True,
     help="Um ano deve ser informado.",
 )
+valor_agregado_args.add_argument(
+    "page",
+    type=int,
+    required=False,
+    default=1,
+)
+valor_agregado_args.add_argument(
+    "per_page",
+    type=int,
+    required=False,
+    default=10,
+)
 
 cargas_movimentadas_args = reqparse.RequestParser()
 cargas_movimentadas_args.add_argument(
