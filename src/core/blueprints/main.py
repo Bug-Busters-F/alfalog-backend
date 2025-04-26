@@ -23,7 +23,7 @@ def calcular_balanca_comercial():
 
     uf_id = args["uf_id"]
 
-    # Buscar somatório de importações
+    # soma importações
     importacoes = (
         db.session.query(
             ImportacaoModel.ano,
@@ -34,7 +34,7 @@ def calcular_balanca_comercial():
         .all()
     )
 
-    # Buscar somatório de exportações
+    # soma exportações
     exportacoes = (
         db.session.query(
             ExportacaoModel.ano,
@@ -45,11 +45,11 @@ def calcular_balanca_comercial():
         .all()
     )
 
-    # Transformar em dicionário {ano: valor}
+    # dicionário {ano: valor}
     dict_importacoes = {i.ano: i.total_importado for i in importacoes}
     dict_exportacoes = {e.ano: e.total_exportado for e in exportacoes}
 
-    # Unir todos os anos
+    # todos os anos
     anos = sorted(set(dict_importacoes.keys()).union(dict_exportacoes.keys()))
 
     resultado = []
