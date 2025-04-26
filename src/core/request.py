@@ -41,3 +41,16 @@ cargas_movimentadas_args.add_argument(
     required=True,
     help="Um ano deve ser informado.",
 )
+cargas_movimentadas_args.add_argument(
+    "page",
+    type=int,
+    required=False,
+    default=0,
+)
+cargas_movimentadas_args.add_argument(
+    "per_page",
+    type=int,
+    required=False,
+    default=10,
+)
+
