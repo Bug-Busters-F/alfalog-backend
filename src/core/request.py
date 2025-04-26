@@ -41,3 +41,31 @@ cargas_movimentadas_args.add_argument(
     required=False,
     help="Informe um ano de início para visualizar um período.",
 )
+
+vias_utilizadas_args = reqparse.RequestParser()
+vias_utilizadas_args.add_argument(
+    "ano",
+    type=int,
+    required=True,
+    help="Um ano deve ser informado.",
+)
+vias_utilizadas_args.add_argument(
+    "uf_id",
+    type=int,
+    required=True,
+    help="ID da UF inválido.",
+)
+
+urf_utilizadas_args = reqparse.RequestParser()
+urf_utilizadas_args.add_argument(
+    "ano",
+    type=int,
+    required=True,
+    help="Um ano deve ser informado.",
+)
+urf_utilizadas_args.add_argument(
+    "uf_id",
+    type=int,
+    required=True,
+    help="ID da UF inválido.",
+)

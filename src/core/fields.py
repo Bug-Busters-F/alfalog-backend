@@ -31,3 +31,13 @@ cargas_movimentadas_fields = {
     "ncm_descricao": fields.String,
     "uf_id": fields.Integer,
 }
+
+vias_fields = {
+    "via_id": fields.Integer,
+    "qtd": fields.Integer,
+}
+
+urfs_fields = {
+    "urf_id": fields.Integer,
+    "qtd": fields.Integer,
+}
