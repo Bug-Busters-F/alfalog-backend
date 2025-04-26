@@ -1,0 +1,35 @@
+# .dockerignore
+
+# Git
+.git
+.gitignore
+
+# Python Virtual Environment
+.venv
+venv/
+*/venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE folders
+.idea/
+.vscode/
+
+# Docker specific files (don't include themselves)
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Environment files (should not be in image)
+.env*
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Add any other large files/folders not needed in the final image
+# Ex: large datasets, build artifacts from other processes, etc.
