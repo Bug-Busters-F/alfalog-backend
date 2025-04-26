@@ -35,6 +35,7 @@ cargas_movimentadas_args.add_argument(
     required=True,
     help="Um ano deve ser informado.",
 )
+
 cargas_movimentadas_args.add_argument(
     "ano_inicial",
     type=int,
@@ -69,3 +70,6 @@ urf_utilizadas_args.add_argument(
     required=True,
     help="ID da UF inválido.",
 )
+
+balanca_comercial_args = reqparse.RequestParser()
+balanca_comercial_args.add_argument("uf_id", type=int, required=True, help="UF ID obrigatório")

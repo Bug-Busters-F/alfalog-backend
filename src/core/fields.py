@@ -41,3 +41,8 @@ urfs_fields = {
     "urf_id": fields.Integer,
     "qtd": fields.Integer,
 }
+
+balanca_comercial_fields = {
+    "ano": fields.Integer,
+    "valor": fields.Float,
+}
