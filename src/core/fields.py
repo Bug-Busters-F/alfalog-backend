@@ -5,22 +5,36 @@ from src.exportacoes.fields import model_fields as transacao_fields
 
 # valor_agregado_fields = transacao_fields["data"]
 # valor_agregado_fields["ncm_descricao"] = fields.String
+
+# Campos adicionados para paginação onde eles se referem as quantidades para dados do front-end para
+# fazer a paginação de forma pratica e eficiente
+# total - total de itens que existe dentro da busca total
 valor_agregado_fields = {
-    "id": fields.Integer,
-    "ano": fields.Integer,
-    "mes": fields.Integer,
-    "peso": fields.Integer,
-    "valor": fields.Integer,
-    "valor_agregado": fields.Float,
-    # FKs
-    "ncm_descricao": fields.String,
-    "ncm_id": fields.Integer,
-    "ue_id": fields.Integer,
-    "pais_id": fields.Integer,
-    "uf_id": fields.Integer,
-    "via_id": fields.Integer,
-    "urf_id": fields.Integer,
+     "id": fields.Integer,
+        "ano": fields.Integer,
+        "mes": fields.Integer,
+        "peso": fields.Integer,
+        "valor": fields.Integer,
+        "valor_agregado": fields.Float,
+        "ncm_descricao": fields.String,
+        "ncm_id": fields.Integer,
+        "ue_id": fields.Integer,
+        "pais_id": fields.Integer,
+        "uf_id": fields.Integer,
+        "via_id": fields.Integer,
+        "urf_id": fields.Integer,
 }
+
+response_fields_valores_agregados = {
+    'pagina': fields.Integer,
+    'quantidade_pagina': fields.Integer,
+    'has_next': fields.Boolean,
+    'has_previous': fields.Boolean,
+    'valores_agregados': fields.List(fields.Nested(valor_agregado_fields))
+}
+
+
+
 cargas_movimentadas_fields = {
     "id": fields.Integer,
     "ano": fields.Integer,
@@ -31,6 +45,16 @@ cargas_movimentadas_fields = {
     "ncm_descricao": fields.String,
     "uf_id": fields.Integer,
 }
+
+response_fields_cargas_movimentadas = {
+    'pagina': fields.Integer,
+    'quantidade_pagina': fields.Integer,
+    'has_next': fields.Boolean,
+    'has_previous': fields.Boolean,
+    'cargas_movimentadas': fields.List(fields.Nested(cargas_movimentadas_fields))
+}
+
+
 
 vias_fields = {
     "via_id": fields.Integer,

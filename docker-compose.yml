@@ -19,22 +19,7 @@ services:
         timeout: 5s
         retries: 5
         start_period: 30s
-
-  app_init:
-    build: .
-    container_name: python_db_initializer
-    restart: 'no'
-    env_file:
-      - .env
-    volumes:
-      - ./data/dados_comex_EXP_2014_2024.csv:/data/dados_comex_EXP_2014_2024.csv:ro
-    environment:
-      APP_DB_HOST: db
-      FLASK_APP: ${FLASK_APP:-src}
-    depends_on:
-      db:
-        condition: service_healthy
-
+        
 volumes:
   mysql_alfalog_data:
     driver: local
