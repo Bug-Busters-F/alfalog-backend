@@ -2,11 +2,13 @@ from src.utils.sqlalchemy import SQLAlchemy
 
 from flask import Flask
 from flask_restful import Api
+from flask_cors import CORS
 
 
 def create_app():
     """Create Flask app."""
     app = Flask(__name__)
+    CORS(app)
     app.config.from_prefixed_env()  # load all the env vars prefixed with 'FLASK_'
     app.config.from_prefixed_env("APP")  # load all the env vars prefixed with 'APP_'
     # app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY")
