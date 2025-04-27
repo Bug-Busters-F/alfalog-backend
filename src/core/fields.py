@@ -40,7 +40,10 @@ cargas_movimentadas_fields = {
     "ano": fields.Integer,
     "mes": fields.Integer,
     "peso": fields.Integer,
+    "valor_agregado": fields.Float,
     # FKs
+    "via_id": fields.Integer,
+    "pais_id": fields.Integer,
     "ncm_id": fields.Integer,
     "ncm_descricao": fields.String,
     "uf_id": fields.Integer,

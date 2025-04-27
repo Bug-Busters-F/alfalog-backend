@@ -92,7 +92,7 @@ def cargas_movimentadas():
     tamanho_pagina = max(1, args["tamanho_pagina"])
     cursor = max(1, args["cursor"])
     offset = (cursor - 1) * tamanho_pagina
-
+    valor_agregado_expr = (ImportacaoModel.valor / func.nullif(ImportacaoModel.peso, 0)).label("valor_agregado")
 
     db = SQLAlchemy.get_instance()
 
@@ -104,6 +104,9 @@ def cargas_movimentadas():
             ImportacaoModel.peso,
             ImportacaoModel.ncm_id,
             ImportacaoModel.uf_id,
+            valor_agregado_expr,
+            ImportacaoModel.pais_id,
+            ImportacaoModel.via_id,
             NCMModel.descricao.label("ncm_descricao"),
         )
         .select_from(ImportacaoModel)

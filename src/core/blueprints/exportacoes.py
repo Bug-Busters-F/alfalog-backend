@@ -88,6 +88,9 @@ def cargas_movimentadas():
     db = SQLAlchemy.get_instance()
     args = cargas_movimentadas_args.parse_args(strict=True)
 
+    valor_agregado_expr = (ExportacaoModel.valor / func.nullif(ExportacaoModel.peso, 0)).label("valor_agregado")
+
+
     # Cálculo da paginação
     tamanho_pagina = max(1, args["tamanho_pagina"])
     cursor = max(1, args["cursor"])
@@ -102,6 +105,9 @@ def cargas_movimentadas():
             ExportacaoModel.peso,
             ExportacaoModel.ncm_id,
             ExportacaoModel.uf_id,
+            valor_agregado_expr,
+            ExportacaoModel.pais_id,
+            ExportacaoModel.via_id,
             NCMModel.descricao.label("ncm_descricao"),
         )
         .select_from(ExportacaoModel)
