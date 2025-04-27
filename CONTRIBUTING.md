@@ -57,36 +57,47 @@ O primeiro passo é clonar o repositório do projeto para o seu ambiente local.
     pip install -r requirements.txt
     ```
 
-5. Configure as variáveis de ambiente
+5. Configuração do banco
+  1. Docker
+        Esta é a maneira mais rápida e fácil, pois o Docker gerencia a criação e execução do container do banco de dados MySQL
 
-    ```sh
-    cp .env.template .env
-    ```
-
-    1. Nessa etapa, você precisará criar ou já ter um banco de dados e usuário configurado. Se ainda não tiver um banco de dados, crie na sua instância do MySQL:
-
-        ```sql
-        CREATE DATABASE alfalog;
+        ```
+            docker compose up --build -d mysql_alfalog_data
         ```
 
-    2. Caso criar um usuário específico para acesso ao banco de dados, execute o seguinte:
+        Observação: Este comando Docker apenas inicia o serviço do banco de dados. O aplicativo Flask ainda será executado localmente (Passo 7). A configuração de conexão no arquivo .env pode não ser necessária ou será preenchida com valores padrão adequados para o ambiente Docker.
 
-        ```sql
-        CREATE USER 'alfalog'@'localhost' IDENTIFIED BY 'password';
 
-        GRANT ALL PRIVILEGES ON alfalog.* TO 'alfalog'@'localhost';
-        FLUSH PRIVILEGES;
-        ```
-
-    3. Abra o arquivo `.env` e edite as credenciais de conexão com o banco de dados.
+    2. Configure as variáveis de ambiente
 
         ```sh
-        # ...
-        DB_HOST=   # database host
-        DB_USER=   # database user
-        DB_PASS=   # database password
-        DB_NAME=   # database name
+        cp .env.template .env
         ```
+
+        1. Nessa etapa, você precisará criar ou já ter um banco de dados e usuário configurado. Se ainda não tiver um banco de dados, crie na sua instância do MySQL:
+
+            ```sql
+            CREATE DATABASE alfalog;
+            ```
+
+        2. Caso criar um usuário específico para acesso ao banco de dados, execute o seguinte:
+
+            ```sql
+            CREATE USER 'alfalog'@'localhost' IDENTIFIED BY 'password';
+
+            GRANT ALL PRIVILEGES ON alfalog.* TO 'alfalog'@'localhost';
+            FLUSH PRIVILEGES;
+            ```
+
+        3. Abra o arquivo `.env` e edite as credenciais de conexão com o banco de dados.
+
+            ```sh
+            # ...
+            DB_HOST=   # database host
+            DB_USER=   # database user
+            DB_PASS=   # database password
+            DB_NAME=   # database name
+            ```
 
 6. Crie o banco de dados e as tabelas automaticamente
 

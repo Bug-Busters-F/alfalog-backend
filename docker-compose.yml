@@ -1,0 +1,25 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql_alfalog_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${APP_DB_PASS}
+      MYSQL_DATABASE: ${APP_DB_NAME}
+      MYSQL_USER: ${APP_DB_USER}
+      MYSQL_PASSWORD: ${APP_DB_PASS}
+    volumes:
+      - mysql_alfalog_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/seed.sql
+    ports:
+      - "3306:3306"
+    healthcheck:
+        test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+        start_period: 30s
+        
+volumes:
+  mysql_alfalog_data:
+    driver: local
