@@ -10,6 +10,7 @@ model_fields = {
     "page": fields.Integer,
     "per_page": fields.Integer,
     "items": fields.List(fields.Nested({
+        "id": fields.Integer,
         "ano": fields.Integer,
         "mes": fields.Integer,
         "peso": fields.Integer,
