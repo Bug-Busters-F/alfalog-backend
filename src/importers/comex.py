@@ -242,23 +242,48 @@ def vias(ctx):
         click.echo(f"❌ Erro ao import Vias: {str(e)}", err=True)
 
 
-@update.command("transacoes")
+@update.command("exportacoes")
 @click.pass_context
 @with_appcontext
 @with_progress_animation()
-def transacoes(ctx):
-    """Import Transações."""
+def exportacoes(ctx):
+    """Import as transações de exportação."""
     replace = ctx.obj["replace"]
-    click.echo(f"Importando Transações!")
+    click.echo(f"Importando as transações de exportação!")
     # click.progressbar
 
-    from .transacoes import importar
+    from .exportacoes import importar_dados
     from src.utils.sqlalchemy import SQLAlchemy
 
     try:
         # importar(replace == "sim")
         db = SQLAlchemy.get_instance()
-        importar(db)
+        # Descomente as linha abaixo caso queira importar dados de EXPORTACOES
+        caminho_csv = "./data/dados_comex_EXP_2014_2024.csv"
+        importar_dados(db, caminho_csv, "exportacoes")
+        click.echo("✅ Transações atualizadas.")
+    except Exception as e:
+        click.echo(f"❌ Erro ao import Transações: {str(e)}", err=True)
+
+
+@update.command("importacoes")
+@click.pass_context
+@with_appcontext
+@with_progress_animation()
+def importacoes(ctx):
+    """Import as Transações de Importação."""
+    replace = ctx.obj["replace"]
+    click.echo(f"Importando as Transações de Importação!")
+    # click.progressbar
+
+    from .importacoes import importar_dados
+    from src.utils.sqlalchemy import SQLAlchemy
+
+    try:
+        # importar(replace == "sim")
+        db = SQLAlchemy.get_instance()
+        caminho_csv = "./data/dados_comex_IMP_2014_2024.csv"
+        importar_dados(db, caminho_csv)
         click.echo("✅ Transações atualizadas.")
     except Exception as e:
         click.echo(f"❌ Erro ao import Transações: {str(e)}", err=True)

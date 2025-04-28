@@ -14,7 +14,10 @@ class PaisModel(BaseModel):
     nome: Mapped[str] = mapped_column(String(255))
 
     # FK
-    transacoes: Mapped[List["TransacaoModel"]] = relationship(
+    exportacoes: Mapped[List["ExportacaoModel"]] = relationship(
+        back_populates="pais", cascade="all, delete-orphan"
+    )
+    importacoes: Mapped[List["ImportacaoModel"]] = relationship(
         back_populates="pais", cascade="all, delete-orphan"
     )
 

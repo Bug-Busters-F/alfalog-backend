@@ -2,11 +2,13 @@ from src.utils.sqlalchemy import SQLAlchemy
 
 from flask import Flask
 from flask_restful import Api
+from flask_cors import CORS
 
 
 def create_app():
     """Create Flask app."""
     app = Flask(__name__)
+    CORS(app)
     app.config.from_prefixed_env()  # load all the env vars prefixed with 'FLASK_'
     app.config.from_prefixed_env("APP")  # load all the env vars prefixed with 'APP_'
     # app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY")
@@ -44,9 +46,17 @@ def register_cli_commands(app: Flask) -> None:
 def register_blueprints(app: Flask) -> None:
     """Register blueprints (routes) into the app."""
 
-    from src.core.main import main
+    from src.core.blueprints.main import main
 
     app.register_blueprint(main)
+
+    from src.core.blueprints.exportacoes import exportacoes
+
+    app.register_blueprint(exportacoes)
+
+    from src.core.blueprints.importacoes import importacoes
+
+    app.register_blueprint(importacoes)
 
 
 def add_resources(api: Api) -> None:
@@ -100,8 +110,16 @@ def add_resources(api: Api) -> None:
     api.add_resource(NCMs, "/api/ncms", "/api/ncms/")
     api.add_resource(NCM, "/api/ncms/<int:id>")
 
-    # Transacao resources
-    from src.transacoes.resources import Transacoes, Transacao
+    # Exportação resources
+    from src.exportacoes.resources import Exportacoes, Exportacao
 
-    api.add_resource(Transacoes, "/api/transacoes", "/api/transacoes/")
-    api.add_resource(Transacao, "/api/transacoes/<int:id>")
+    api.add_resource(Exportacoes, "/api/exportacoes", "/api/exportacoes/")
+    api.add_resource(Exportacao, "/api/exportacoes/<int:id>")
+
+    # Importação resources
+    from src.importacoes.resources import Importacoes, Importacao
+
+    api.add_resource(Importacoes, "/api/importacoes", "/api/importacoes/")
+    api.add_resource(Importacao, "/api/importacoes/<int:id>")
+
+
