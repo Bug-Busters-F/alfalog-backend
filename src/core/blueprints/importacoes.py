@@ -150,6 +150,17 @@ def vias_utilizadas():
     args = vias_utilizadas_args.parse_args(strict=True)
 
     db = SQLAlchemy.get_instance()
+    # Condição do periodo
+    filters = [ ImportacaoModel.uf_id == args["uf_id"] ]
+    ano_inicial = args.get("periodo_ano_inicial")
+    ano_final = args["periodo_ano_final"]
+    if ano_inicial is not None:
+        # Se o ano inicial for fornecido, filtramos no período [ano_inicial, ano_final]
+        filters.append(ImportacaoModel.ano.between(ano_inicial, ano_final))
+    else:
+        # Se o ano inicial não for fornecido, filtramos apenas pelo ano final
+        filters.append(ImportacaoModel.ano == ano_final)
+
 
     entries = (
         db.session.query(
@@ -157,7 +168,7 @@ def vias_utilizadas():
             ImportacaoModel.via_id.label("via_id")
         )
         .join(ViaModel, ImportacaoModel.via_id == ViaModel.id)
-        .filter(ImportacaoModel.ano == args["ano"], ImportacaoModel.uf_id == args["uf_id"])
+        .filter(*filters)
         .group_by(ImportacaoModel.via_id)
         .all()
     )
@@ -174,16 +185,23 @@ def urfs_utilizadas():
     args = urf_utilizadas_args.parse_args(strict=True)
 
     db = SQLAlchemy.get_instance()
+    # Condição do periodo
+    filters = [ ImportacaoModel.uf_id == args["uf_id"] ]
+    ano_inicial = args.get("periodo_ano_inicial")
+    ano_final = args["periodo_ano_final"]
+    if ano_inicial is not None:
+        # Se o ano inicial for fornecido, filtramos no período [ano_inicial, ano_final]
+        filters.append(ImportacaoModel.ano.between(ano_inicial, ano_final))
+    else:
+        # Se o ano inicial não for fornecido, filtramos apenas pelo ano final
+        filters.append(ImportacaoModel.ano == ano_final)
 
     entries = (
         db.session.query(
             ImportacaoModel.urf_id.label("urf_id"),
             db.func.count(ImportacaoModel.urf_id).label("qtd")
         )
-        .filter(
-            ImportacaoModel.ano == args["ano"],
-            ImportacaoModel.uf_id == args["uf_id"]
-        )
+        .filter(*filters)
         .group_by(ImportacaoModel.urf_id)
         .all()
     )

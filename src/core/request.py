@@ -32,11 +32,13 @@ cargas_movimentadas_args.add_argument("cursor", type=int, required=False, defaul
 """
 # Vias utilizadas
 vias_utilizadas_args = reqparse.RequestParser()
-vias_utilizadas_args.add_argument("ano", type=int, required=True, help="Um ano deve ser informado.")
+vias_utilizadas_args.add_argument("periodo_ano_final", type=int, required=True, help="Ano para ser feito o calculo de periodo")
+vias_utilizadas_args.add_argument("periodo_ano_inicial", type=int, required=False, help="Um ano deve ser informado.")
 vias_utilizadas_args.add_argument("uf_id", type=int, required=True, help="ID da UF inválido.")
 # Urf utilizadas
 urf_utilizadas_args = reqparse.RequestParser()
-urf_utilizadas_args.add_argument("ano",  type=int,  required=True,  help="Um ano deve ser informado.")
+urf_utilizadas_args.add_argument("periodo_ano_final",  type=int,  required=True,    help="Ano para ser feito o calculo de periodo")
+urf_utilizadas_args.add_argument("periodo_ano_inicial",  type=int,  required=False,  help="Ano inicial do periodo, se não for passado, apenas pegara o ano normal.")
 urf_utilizadas_args.add_argument("uf_id", type=int,  required=True, help="ID da UF inválido.")
 """
     Argumentos para valor [ Balança Comercial ]
