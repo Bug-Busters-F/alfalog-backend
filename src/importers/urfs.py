@@ -14,9 +14,6 @@ def importar(replace: bool = False):
 
     # Para cada linha do CSV, criar um objeto URFModel e salvar no BD
     for index, row in exp_df_base.iterrows():
-        # Se a primeira linha do CSV for cabeçalho, você pode pular index == 0
-        if index == 0:
-            continue
 
         urf = db.session.query(URFModel).filter_by(codigo=row["CO_URF"]).first()
         if urf and not replace:

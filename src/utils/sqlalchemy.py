@@ -38,7 +38,7 @@ class SQLAlchemy:
 
         app.config["SQLALCHEMY_DATABASE_URI"] = (
             f"mysql://{app.config['DB_USER']}:{app.config['DB_PASS']}"
-            f"@{app.config['DB_HOST']}/{app.config['DB_NAME']}"
+            f"@{app.config['DB_HOST']}:{app.config['DB_PORT']}/{app.config['DB_NAME']}"
         )
         db.init_app(app)
 

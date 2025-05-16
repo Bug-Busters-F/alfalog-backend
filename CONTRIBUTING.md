@@ -12,138 +12,145 @@ Contribuir para o nosso projeto é fácil e estamos ansiosos para receber suas c
 
 Aqui está o que você precisa:
 
-- Uma conta no [GitHub](https://github.com/)
-- O *version control system* [Git](https://git-scm.com/) instalado.
-- Um IDE para o desenvolvimento. Recomendamos o [IntelliJ IDEA](https://www.jetbrains.com/idea/).
-- ..................
-- O banco de dados [MySQL](https://dev.mysql.com/downloads/mysql/) configurado, pois o projeto utiliza o MySQL para armazenamento de dados.
+- [Git](https://git-scm.com/)
+- [Docker](https://www.docker.com/get-started/), para utilização de contâineres. É opcional, mas recomendamos o seu uso.
+- Caso opte por não utilizar Docker:
+  - [Python v3.12](https://www.python.org/downloads/release/python-3120/)
+  - [MySQL](https://dev.mysql.com/downloads/mysql/)
 
-### Instalação
+## Instalação
 
-O primeiro passo é clonar o repositório do projeto para o seu ambiente local.
+Vamos indicar aqui duas maneiras de instalar:
 
-1. Abra um terminal.
-2. Execute o seguinte comando para clonar o repositório:
+1. utilizando o Docker
+2. utilizando um ambiente virtual `venv`.
+
+Mas, primeiro, vamos realizar algumas configurações comuns à essas maneiras de instalação.
+
+1. clone o repositório e o acesse.
 
    ```bash
    git clone https://github.com/Bug-Busters-F/alfalog-backend
-   ```
 
-3. Navegue até o diretório do projeto:
-
-   ```bash
    cd alfalog-backend
    ```
 
-
-3. Indicamos o uso de um ambiente virtual, como o [venv](https://docs.python.org/3/library/venv.html)
-
-    ```sh
-    python -m venv venv
-
-    # Windows - ative o ambiente
-    source venv/Scripts/activate
-
-    # Linux - ative o ambiente
-    . venv/bin/activate
-
-    # Mac - ative o ambiente
-    source venv/bin/activate
-    ```
-
-4. Instale as dependências
+2. Configure as variáveis de ambiente
 
     ```sh
-    pip install -r requirements.txt
+    cp .env.template .env
     ```
 
-5. Configuração do banco
-  1. Docker
-        Esta é a maneira mais rápida e fácil, pois o Docker gerencia a criação e execução do container do banco de dados MySQL
-
-        ```
-            docker compose up --build -d mysql_alfalog_data
-        ```
-
-        Observação: Este comando Docker apenas inicia o serviço do banco de dados. O aplicativo Flask ainda será executado localmente (Passo 7). A configuração de conexão no arquivo .env pode não ser necessária ou será preenchida com valores padrão adequados para o ambiente Docker.
-
-
-    2. Configure as variáveis de ambiente
-
-        ```sh
-        cp .env.template .env
-        ```
-
-        1. Nessa etapa, você precisará criar ou já ter um banco de dados e usuário configurado. Se ainda não tiver um banco de dados, crie na sua instância do MySQL:
-
-            ```sql
-            CREATE DATABASE alfalog;
-            ```
-
-        2. Caso criar um usuário específico para acesso ao banco de dados, execute o seguinte:
-
-            ```sql
-            CREATE USER 'alfalog'@'localhost' IDENTIFIED BY 'password';
-
-            GRANT ALL PRIVILEGES ON alfalog.* TO 'alfalog'@'localhost';
-            FLUSH PRIVILEGES;
-            ```
-
-        3. Abra o arquivo `.env` e edite as credenciais de conexão com o banco de dados.
-
-            ```sh
-            # ...
-            DB_HOST=   # database host
-            DB_USER=   # database user
-            DB_PASS=   # database password
-            DB_NAME=   # database name
-            ```
-
-6. Crie o banco de dados e as tabelas automaticamente
+3. Abra o arquivo `.env` e edite as credenciais de conexão com o banco de dados.
 
     ```sh
-    python -m database.create # executa database/create como um módulo Python.
+    # ...
+    APP_DB_HOST=   # database host
+    APP_DB_USER=   # database user
+    APP_DB_PASS=   # database password
+    APP_DB_NAME=   # database name
+    APP_DB_PORT=   # database port
     ```
 
-   1. Opcionalmente, você pode executar os comandos SQL em `database/seed.sql` diretamente no Banco de Dados para testes
+### Instalação utilizando Docker
 
-7. Va até o [Google Colab](https://colab.research.google.com/drive/1WRSAEERIYsReXWyuLLLTs28WkV41tFyW?usp=sharing) da limpeza e execute a limpeza dos dados, após executado, será salvo dois arquivos .csv no seu Google Drive no diretório /comex_data
-    
+```sh
+docker compose up --build -d
+```
 
-8. Após baixar ambos os arquivos crie uma pasta na raiz do projeto /data e insira ambos os arquivos .csv, nomeados como:
+Esse comando irá
+
+- criar a imagem Docker deste projeto
+- buscar a imagem do banco de dados no repositório Docker
+- Iniciar um container do banco de dados
+- Iniciar um container deste projeto e criar as entidades no banco de dados.
+
+O Flask está disponível em: [http://localhost:5000](http://localhost:5000)
+
+### Instalação utilizando um ambiente virtual `venv`
+
+1. Crie o ambiente virtual
+
+   ```sh
+   python -m venv venv
+
+   # Windows - ative o ambiente
+   source venv/Scripts/activate
+
+   # Linux - ative o ambiente
+   . venv/bin/activate
+
+   # Mac - ative o ambiente
+   source venv/bin/activate
+   ```
+
+2. Instale as dependências
+
+   ```sh
+   pip install -r requirements.txt
+   ```
+
+3. Configuração do banco de dados. Nessa etapa, você precisará criar ou já ter um banco de dados e usuário configurado. Se ainda não tiver um banco de dados, crie na sua instância do MySQL:
+
+   ```sql
+   CREATE DATABASE alfalog;
+
+   CREATE USER 'alfalog'@'localhost' IDENTIFIED BY 'password';
+   GRANT ALL PRIVILEGES ON alfalog.* TO 'alfalog'@'localhost';
+   FLUSH PRIVILEGES;
+    ```
+
+4. Crie o banco de dados e as tabelas automaticamente
+
+   ```sh
+   python -m database.create # executa database/create como um módulo Python.
+   ```
+
+5. Execute a aplicação
+
+   ```sh
+   flask run
+   ```
+
+O Flask está disponível em: [http://localhost:5000](http://localhost:5000)
+
+## Importação de Dados do COMEX
+
+Para importar os dados de exportações e importações, além de dados secundários como UFs (Unidades Federativas), da base do COMEX, siga os seguintes passos.
+
+1. Abra o [Google Colab](https://colab.research.google.com/drive/1WRSAEERIYsReXWyuLLLTs28WkV41tFyW?usp=sharing) e execute a limpeza dos dados.
+
+2. Em seguida, encontre dois arquivos .csv no seu Google Drive no diretório `/comex_data`
+
+3. Faça o download dos dois arquivos e copie-os para uma pasta na raiz do projeto chamada `/data` com os seguintes nomes:
 
     ```sh
     # arquivo limpo de exportações
-        dados_comex_EXP_2014_2024.csv
+    dados_comex_EXP_2014_2024.csv
     # arquivo limpo de importações
-        dados_comex_IMP_2014_2024.csv
+    dados_comex_IMP_2014_2024.csv
     ```
 
-8. Caso queira, você pode importar os dados da base do COMEX executando o seguinte comando:
+4. Agora você pode importar os dados do COMEX executando o seguinte comando:
 
     ```sh
     flask comex update
-    # or
-    flask comex update --help # para conhecer as opções
+
+    # execute este comando para conhecer as opções
+    flask comex update --help
     ```
 
-9. Caso queira importar somente um dos tipos de dados ('Importações' ou 'Exportações) execute estes comandos:
-
-     ```sh
-    flask comex update importacoes # para dados da importação
-    # or
-    flask comex update exportacoes # para dados da exportação
-    ```
-
-9. Execute o servidor Flask
+5. Caso queira importar os dados de uma única entidade, execute:
 
     ```sh
-    flask run
+    flask comex update <nome-entidade>
+
+    # execute para saber as entidades existentes
+    flask comex update --help
+
+    # Por exemplo:
+    flask comex update importacoes # para dados da importação
     ```
-
-10.  Abra em um navegador: [http://localhost:5000](http://localhost:5000)
-
----
 
 ## Testes
 
