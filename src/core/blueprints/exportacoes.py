@@ -153,6 +153,18 @@ def vias_utilizadas():
     args = vias_utilizadas_args.parse_args(strict=True)
     db = SQLAlchemy.get_instance()
 
+    # Condição do periodo
+    filters = [ ExportacaoModel.uf_id == args["uf_id"] ]
+    ano_inicial = args.get("periodo_ano_inicial")
+    ano_final = args["periodo_ano_final"]
+
+    if ano_inicial is not None:
+        # Se o ano inicial for fornecido, filtramos no período [ano_inicial, ano_final]
+        filters.append(ExportacaoModel.ano.between(ano_inicial, ano_final))
+    else:
+        # Se o ano inicial não for fornecido, filtramos apenas pelo ano final
+        filters.append(ExportacaoModel.ano == ano_final)
+
     base_query = (
         db.session.query(
             func.count(ExportacaoModel.via_id).label("qtd"),
@@ -160,10 +172,7 @@ def vias_utilizadas():
         )
         .select_from(ExportacaoModel)
         .join(ViaModel, ExportacaoModel.via_id == ViaModel.id)
-        .filter(
-            ExportacaoModel.ano == args["ano"],
-            ExportacaoModel.uf_id == args["uf_id"]
-            )
+        .filter(*filters)
         .group_by(ExportacaoModel.via_id)
         .order_by(desc("qtd"))
     )
@@ -181,13 +190,25 @@ def urfs_utilizadas():
     args = urf_utilizadas_args.parse_args(strict=True)
 
     db = SQLAlchemy.get_instance()
+    
+    # Condição do periodo
+    filters = [ ExportacaoModel.uf_id == args["uf_id"] ]
+    ano_inicial = args.get("periodo_ano_inicial")
+    ano_final = args["periodo_ano_final"]
+    
+    if ano_inicial is not None:
+        # Se o ano inicial for fornecido, filtramos no período [ano_inicial, ano_final]
+        filters.append(ExportacaoModel.ano.between(ano_inicial, ano_final))
+    else:
+        # Se o ano inicial não for fornecido, filtramos apenas pelo ano final
+        filters.append(ExportacaoModel.ano == ano_final)
 
     entries = (
         db.session.query(
             ExportacaoModel.urf_id.label("urf_id"),
             db.func.count(ExportacaoModel.urf_id).label("qtd")
         )
-        .filter(ExportacaoModel.ano == args["ano"],ExportacaoModel.uf_id == args["uf_id"])
+        .filter(*filters)
         .group_by(ExportacaoModel.urf_id)
         .all()
     )
