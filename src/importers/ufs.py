@@ -14,8 +14,6 @@ def importar(replace: bool = False):
 
     # para cada linha
     for index, row in exp_df_base.iterrows():
-        if index == 0:
-            continue
 
         uf = db.session.query(UFModel).filter_by(codigo=row["CO_UF"]).first()
         if uf and not replace:
