@@ -238,3 +238,68 @@ def _filter_year_or_period(query, year_end: int, year_start: int = None):
         return query.filter(ImportacaoModel.ano.between(year_start, year_end))
     return query.filter(ImportacaoModel.ano == year_end)
 
+@importacoes.route("/api/importacoes/por-estado", methods=["POST"])
+def estados_mais_importaram():
+    db = SQLAlchemy.get_instance()
+    ncm = request.args.get("ncm")
+
+    query = db.session.query(
+        ImportacaoModel.uf_id,
+        func.sum(ImportacaoModel.valor).label("total")
+    )
+
+    if ncm:
+        query = query.filter(ImportacaoModel.ncm == ncm)
+
+    resultados = (
+        query.group_by(ImportacaoModel.uf_id)
+        .order_by(func.sum(ImportacaoModel.valor).desc())
+        .limit(6)
+        .all()
+    )
+
+    return [{"uf_id": r.uf_id, "total": r.total} for r in resultados]
+
+@importacoes.route("/api/importacoes/por-via", methods=["POST"])
+def vias_mais_importaram():
+    db = SQLAlchemy.get_instance()
+    ncm = request.args.get("ncm")
+
+    query = db.session.query(
+        ImportacaoModel.via_id,
+        func.sum(ImportacaoModel.valor).label("total")
+    )
+
+    if ncm:
+        query = query.filter(ImportacaoModel.ncm == ncm)
+
+    resultados = (
+        query.group_by(ImportacaoModel.via_id)
+        .order_by(func.sum(ImportacaoModel.valor).desc())
+        .limit(6)
+        .all()
+    )
+
+    return [{"via_id": r.via_id, "total": r.total} for r in resultados]
+
+@importacoes.route("/api/importacoes/por-urf", methods=["POST"])
+def urfs_mais_importaram():
+    db = SQLAlchemy.get_instance()
+    ncm = request.args.get("ncm")
+
+    query = db.session.query(
+        ImportacaoModel.urf_id,
+        func.sum(ImportacaoModel.valor).label("total")
+    )
+
+    if ncm:
+        query = query.filter(ImportacaoModel.ncm == ncm)
+
+    resultados = (
+        query.group_by(ImportacaoModel.urf_id)
+        .order_by(func.sum(ImportacaoModel.valor).desc())
+        .limit(6)
+        .all()
+    )
+
+    return [{"urf_id": r.urf_id, "total": r.total} for r in resultados]

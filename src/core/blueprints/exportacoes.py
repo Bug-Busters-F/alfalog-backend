@@ -243,3 +243,68 @@ def _filter_year_or_period(query, year_end: int, year_start: int = None):
     if year_start:
         return query.filter(ExportacaoModel.ano.between(year_start, year_end))
     return query.filter(ExportacaoModel.ano == year_end)
+
+@exportacoes.route("/api/exportacoes/por-estado", methods=["POST"])
+def estados_mais_exportaram():
+    db = SQLAlchemy.get_instance()
+    ncm = request.args.get("ncm")
+
+    query = db.session.query(
+        ExportacaoModel.uf_id, func.sum(ExportacaoModel.valor).label("total")
+    )
+
+    if ncm:
+        query = query.filter(ExportacaoModel.ncm == ncm)
+
+    resultados = (
+        query.group_by(ExportacaoModel.uf_id)
+             .order_by(func.sum(ExportacaoModel.valor).desc())
+             .limit(6)
+             .all()
+    )
+
+    return [{"uf_id": r.uf_id, "total": r.total} for r in resultados]
+
+
+@exportacoes.route("/api/exportacoes/por-via", methods=["POST"])
+def vias_mais_exportaram():
+    db = SQLAlchemy.get_instance()
+    ncm = request.args.get("ncm")
+
+    query = db.session.query(
+        ExportacaoModel.via_id, func.sum(ExportacaoModel.valor).label("total")
+    )
+
+    if ncm:
+        query = query.filter(ExportacaoModel.ncm == ncm)
+
+    resultados = (
+        query.group_by(ExportacaoModel.via_id)
+             .order_by(func.sum(ExportacaoModel.valor).desc())
+             .limit(6)
+             .all()
+    )
+
+    return [{"via_id": r.via_id, "total": r.total} for r in resultados]
+
+
+@exportacoes.route("/api/exportacoes/por-urf", methods=["POST"])
+def urfs_mais_exportaram():
+    db = SQLAlchemy.get_instance()
+    ncm = request.args.get("ncm")
+
+    query = db.session.query(
+        ExportacaoModel.urf_id, func.sum(ExportacaoModel.valor).label("total")
+    )
+
+    if ncm:
+        query = query.filter(ExportacaoModel.ncm == ncm)
+
+    resultados = (
+        query.group_by(ExportacaoModel.urf_id)
+             .order_by(func.sum(ExportacaoModel.valor).desc())
+             .limit(6)
+             .all()
+    )
+
+    return [{"urf_id": r.urf_id, "total": r.total} for r in resultados]
