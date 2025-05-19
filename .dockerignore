@@ -1,0 +1,76 @@
+README.md
+CHANGELOG.md
+dist
+
+# Python-specific ignores
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+pip-selfcheck.json
+
+# Dependency directories (avoid conflicts)
+lib/
+lib64/
+site-packages/
+*.egg-info/
+*.egg
+.python-version
+
+# Development & IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Testing & debug files
+.coverage
+htmlcov/
+.pytest_cache/
+nosetests.xml
+
+# Environment files (except .env if needed)
+.env
+.env.local
+.env.*.local
+.env.dev
+.env.test
+.env.prod
+
+# Git & version control
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+
+# Docker-related files (if not needed in build)
+docker-compose.yml
+docker-compose.*.yml
+compose.yaml
+Dockerfile.bak
+Dockerfile
+
+# Logs and temp files
+*.log
+logs/
+tmp/
+temp/
+
+# CI/CD & build files (if not needed)
+.github/
+.gitlab-ci.yml
+.travis.yml
