@@ -14,9 +14,6 @@ def importar(replace: bool = False):
 
     # Para cada linha do CSV, criar um objeto NCMModel e salvar no BD
     for index, row in exp_df_base.iterrows():
-        # Se a primeira linha do CSV for cabeçalho, podemos pular index == 0
-        if index == 0:
-            continue
 
         ncm = db.session.query(NCMModel).filter_by(codigo=row["CO_NCM"]).first()
         if ncm and not replace:
