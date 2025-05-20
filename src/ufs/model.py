@@ -22,6 +22,9 @@ class UFModel(BaseModel):
     importacoes: Mapped[List["ImportacaoModel"]] = relationship(
         back_populates="uf", cascade="all, delete-orphan"
     )
+    balancas: Mapped[List["BalancaModel"]] = relationship(
+        back_populates="uf", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"Unidade Federativa: código = {self.codigo!r}, nome = {self.nome!r}, sigla = {self.sigla!r}, nome da região = {self.nome_regiao!r}."
