@@ -2,8 +2,18 @@ import marshal
 from flask import Blueprint, request
 from flask_restful import marshal_with
 from sqlalchemy import desc, func, text
-from ..request import valor_agregado_args, cargas_movimentadas_args, vias_utilizadas_args, urf_utilizadas_args
-from ..fields import response_fields_cargas_movimentadas, response_fields_valores_agregados, vias_fields, urfs_fields
+from ..request import (
+    valor_agregado_args,
+    cargas_movimentadas_args,
+    vias_utilizadas_args,
+    urf_utilizadas_args,
+)
+from ..fields import (
+    response_fields_cargas_movimentadas,
+    response_fields_valores_agregados,
+    vias_fields,
+    urfs_fields,
+)
 from src.importacoes.model import ImportacaoModel
 from src.ufs.model import UFModel
 from src.ncms.model import NCMModel
@@ -25,7 +35,9 @@ def valor_agregado():
     cursor = max(1, args["cursor"])
     offset = (cursor - 1) * tamanho_pagina
 
-    valor_agregado_expr = (ImportacaoModel.valor / func.nullif(ImportacaoModel.peso, 0)).label("valor_agregado")
+    valor_agregado_expr = (
+        ImportacaoModel.valor / func.nullif(ImportacaoModel.peso, 0)
+    ).label("valor_agregado")
 
     base_query = (
         db.session.query(
@@ -34,7 +46,7 @@ def valor_agregado():
             ImportacaoModel.mes,
             ImportacaoModel.peso,
             ImportacaoModel.valor,
-            valor_agregado_expr, 
+            valor_agregado_expr,
             ImportacaoModel.ncm_id,
             ImportacaoModel.ue_id,
             ImportacaoModel.pais_id,
@@ -56,9 +68,9 @@ def valor_agregado():
 
     # Buscar 'per_page + 1' registros
     num_to_fetch = tamanho_pagina + 1
-    entries_plus_one = base_query.order_by(
-        *order_clause
-    ).limit(num_to_fetch).offset(offset).all()
+    entries_plus_one = (
+        base_query.order_by(*order_clause).limit(num_to_fetch).offset(offset).all()
+    )
 
     # Determinar se há uma próxima página
     has_next = len(entries_plus_one) > tamanho_pagina
@@ -92,7 +104,9 @@ def cargas_movimentadas():
     tamanho_pagina = max(1, args["tamanho_pagina"])
     cursor = max(1, args["cursor"])
     offset = (cursor - 1) * tamanho_pagina
-    valor_agregado_expr = (ImportacaoModel.valor / func.nullif(ImportacaoModel.peso, 0)).label("valor_agregado")
+    valor_agregado_expr = (
+        ImportacaoModel.valor / func.nullif(ImportacaoModel.peso, 0)
+    ).label("valor_agregado")
 
     db = SQLAlchemy.get_instance()
 
@@ -116,14 +130,16 @@ def cargas_movimentadas():
     )
 
     # filtering
-    ano_inicial = args.get("ano_inicial") # Usar .get() para evitar KeyError se não existir
+    ano_inicial = args.get(
+        "ano_inicial"
+    )  # Usar .get() para evitar KeyError se não existir
     base_query = _filter_year_or_period(base_query, args.get("ano"), ano_inicial)
     order_clause = (desc(ImportacaoModel.peso), desc(ImportacaoModel.id))
 
     num_to_fetch = tamanho_pagina + 1
-    entries_plus_one = base_query.order_by(
-        *order_clause
-    ).limit(num_to_fetch).offset(offset).all()
+    entries_plus_one = (
+        base_query.order_by(*order_clause).limit(num_to_fetch).offset(offset).all()
+    )
 
     has_next = len(entries_plus_one) > tamanho_pagina
 
@@ -131,7 +147,7 @@ def cargas_movimentadas():
     entries_paginadas = entries_plus_one[:tamanho_pagina]
 
     has_previous = cursor > 1
-    
+
     response = {
         "pagina": cursor,
         "quantidade_pagina": tamanho_pagina,
@@ -151,21 +167,22 @@ def vias_utilizadas():
 
     db = SQLAlchemy.get_instance()
 
-    entries = (
+    base_query = (
         db.session.query(
             db.func.count(ImportacaoModel.via_id).label("qtd"),
-            ImportacaoModel.via_id.label("via_id")
+            ImportacaoModel.via_id.label("via_id"),
         )
         .join(ViaModel, ImportacaoModel.via_id == ViaModel.id)
-        .filter(ImportacaoModel.ano == args["ano"], ImportacaoModel.uf_id == args["uf_id"])
-        .group_by(ImportacaoModel.via_id)
-        .all()
+        .filter(ImportacaoModel.uf_id == args["uf_id"])
     )
 
+    ano_inicial = args.get("ano_inicial")
+    base_query = _filter_year_or_period(base_query, args.get("ano"), ano_inicial)
+    base_query = base_query.group_by(ImportacaoModel.via_id).order_by(desc("qtd"))
+
+    entries = base_query.all()
     return entries
 
-    # comando p/ testes CMD
-    # curl -X POST http://127.0.0.1:5000/api/importacoes/vias-utilizadas -H "Content-Type: application/json" -d "{\"ano\": 2023, \"uf_id\": 12}"
 
 @importacoes.route("/api/importacoes/urfs-utilizadas", methods=["POST"])
 @marshal_with(urfs_fields)
@@ -175,18 +192,14 @@ def urfs_utilizadas():
 
     db = SQLAlchemy.get_instance()
 
-    entries = (
-        db.session.query(
-            ImportacaoModel.urf_id.label("urf_id"),
-            db.func.count(ImportacaoModel.urf_id).label("qtd")
-        )
-        .filter(
-            ImportacaoModel.ano == args["ano"],
-            ImportacaoModel.uf_id == args["uf_id"]
-        )
-        .group_by(ImportacaoModel.urf_id)
-        .all()
-    )
+    base_query = db.session.query(
+        ImportacaoModel.urf_id.label("urf_id"),
+        db.func.count(ImportacaoModel.urf_id).label("qtd"),
+    ).filter(ImportacaoModel.uf_id == args["uf_id"])
+
+    ano_inicial = args.get("ano_inicial")
+    base_query = _filter_year_or_period(base_query, args.get("ano"), ano_inicial)
+    entries = base_query.group_by(ImportacaoModel.urf_id).all()
 
     return entries
 
@@ -219,4 +232,3 @@ def _filter_year_or_period(query, year_end: int, year_start: int = None):
     if year_start:
         return query.filter(ImportacaoModel.ano.between(year_start, year_end))
     return query.filter(ImportacaoModel.ano == year_end)
-
