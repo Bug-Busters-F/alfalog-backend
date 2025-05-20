@@ -1,9 +1,10 @@
 from flask import Blueprint, request
 from flask_restful import marshal_with, fields
-from sqlalchemy import func
+from sqlalchemy import func, cast, Integer
 from ..fields import balanca_comercial_fields
 from ..request import balanca_comercial_args
 from src.importacoes.model import ImportacaoModel
+from src.somas.model import SomaModel
 from src.exportacoes.model import ExportacaoModel
 from src.utils.sqlalchemy import SQLAlchemy
 from src.ncms.model import NCMModel
@@ -59,6 +60,56 @@ def calcular_balanca_comercial():
         })
 
     return {"balanca": resultado}
+
+# Rota CardSomas
+estatisticas_response_fields = {
+    "numero_total_importacoes": fields.Integer,
+    "numero_total_exportacoes": fields.Integer,
+    "valor_agregado_total_importacao_reais": fields.String,
+    "valor_agregado_total_exportacao_reais": fields.String
+}
+
+@main.route("/api/estatisticas-comerciais", methods=["GET"])
+@marshal_with(estatisticas_response_fields)
+def estatisticas_comerciais():
+    nome_estado = request.args.get("estado", type=str)
+    ano_inicio = request.args.get("ano_inicio", type=int)
+    ano_fim = request.args.get("ano_fim", type=int)
+
+    if not nome_estado or ano_inicio is None or ano_fim is None:
+        return {"message": "Parâmetros 'estado', 'ano_inicio' e 'ano_fim' são obrigatórios."}, 400
+
+    db = SQLAlchemy.get_instance()
+
+    resultados = db.session.query(
+        SomaModel.numero_total_importacoes,
+        SomaModel.numero_total_exportacao,
+        SomaModel.valor_agregado_total_importacao_reais,
+        SomaModel.valor_agregado_total_exportacao_reais
+    ).filter(
+        func.lower(func.trim(SomaModel.estado)) == nome_estado.strip().lower(),
+        cast(SomaModel.ano, Integer).between(ano_inicio, ano_fim)
+    ).all()
+
+    if not resultados:
+        return {
+            "numero_total_importacoes": 0,
+            "numero_total_exportacoes": 0,
+            "valor_agregado_total_importacao_reais": "0",
+            "valor_agregado_total_exportacao_reais": "0"
+        }
+
+    total_imp = sum(r.numero_total_importacoes for r in resultados)
+    total_exp = sum(r.numero_total_exportacao for r in resultados)
+    valor_imp = sum(float(r.valor_agregado_total_importacao_reais) for r in resultados)
+    valor_exp = sum(float(r.valor_agregado_total_exportacao_reais) for r in resultados)
+
+    return {
+        "numero_total_importacoes": total_imp,
+        "numero_total_exportacoes": total_exp,
+        "valor_agregado_total_importacao_reais": str(int(valor_imp)),
+        "valor_agregado_total_exportacao_reais": str(int(valor_exp))
+    }
 
 @main.route("/api/balanca-comercial/ncm", methods=["POST"])
 def balanca_comercial_por_ncm():

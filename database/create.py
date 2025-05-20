@@ -8,6 +8,7 @@ load_dotenv()
 
 # App
 from src import create_app
+from src.somas.model import SomaModel
 
 app = create_app()
 
