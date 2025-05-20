@@ -83,8 +83,8 @@ def importar_dados(db, caminho_csv, tipo_dado='importacoes'):
     loader.insert_bulk_data(df_final, tipo_dado)
 
 def calcular_somas_por_uf_e_ano_csv(db, caminho_csv_imp: str, caminho_csv_exp: str, replace: bool = False):
-    df_imp = pd.read_csv(caminho_csv_imp, usecols=["ANO", "NO_UF", "VL_FOB", "KG_LIQUIDO"])
-    df_exp = pd.read_csv(caminho_csv_exp, usecols=["ANO", "NO_UF", "VL_FOB", "KG_LIQUIDO"])
+    df_imp = pd.read_csv(caminho_csv_imp, usecols=["ANO", "SG_UF", "VL_FOB", "KG_LIQUIDO"])
+    df_exp = pd.read_csv(caminho_csv_exp, usecols=["ANO", "SG_UF", "VL_FOB", "KG_LIQUIDO"])
 
     # Remove registros com KG_LIQUIDO zero ou nulo para evitar divisão por zero
     df_imp = df_imp[df_imp["KG_LIQUIDO"] > 0]
@@ -95,18 +95,18 @@ def calcular_somas_por_uf_e_ano_csv(db, caminho_csv_imp: str, caminho_csv_exp: s
     df_exp["VL_AGREGADO"] = df_exp["VL_FOB"] / df_exp["KG_LIQUIDO"]
 
     # Agrupamento e agregação
-    grupo_imp = df_imp.groupby(["ANO", "NO_UF"]).agg(
+    grupo_imp = df_imp.groupby(["ANO", "SG_UF"]).agg(
         numero_total_importacoes=("VL_FOB", "count"),
         valor_agregado_total_importacao_reais=("VL_AGREGADO", "sum")
     ).reset_index()
 
-    grupo_exp = df_exp.groupby(["ANO", "NO_UF"]).agg(
+    grupo_exp = df_exp.groupby(["ANO", "SG_UF"]).agg(
         numero_total_exportacao=("VL_FOB", "count"),
         valor_agregado_total_exportacao_reais=("VL_AGREGADO", "sum")
     ).reset_index()
 
-    grupo_imp.rename(columns={"NO_UF": "estado", "ANO": "ano"}, inplace=True)
-    grupo_exp.rename(columns={"NO_UF": "estado", "ANO": "ano"}, inplace=True)
+    grupo_imp.rename(columns={"SG_UF": "estado", "ANO": "ano"}, inplace=True)
+    grupo_exp.rename(columns={"SG_UF": "estado", "ANO": "ano"}, inplace=True)
 
     df_final = pd.merge(grupo_exp, grupo_imp, on=["estado", "ano"], how="outer").fillna(0)
     df_final["numero_total_exportacao"] = df_final["numero_total_exportacao"].astype(int)
