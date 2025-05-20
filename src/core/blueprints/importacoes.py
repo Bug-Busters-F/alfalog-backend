@@ -238,91 +238,42 @@ def _filter_year_or_period(query, year_end: int, year_start: int = None):
         return query.filter(ImportacaoModel.ano.between(year_start, year_end))
     return query.filter(ImportacaoModel.ano == year_end)
 
-@importacoes.route("/api/importacoes/por-estado", methods=["POST"])
-def estados_mais_importaram():
+@importacoes.route("/api/importacoes/graficos-pesquisa", methods=["POST"])
+def graficos_pesquisa_importacoes():
     db = SQLAlchemy.get_instance()
-    ncm = request.args.get("ncm")
+    data = request.get_json()
 
-    query = db.session.query(
-        ImportacaoModel.uf_id,
-        func.sum(ImportacaoModel.valor).label("total")
-    )
+    ncm = data.get("ncm")
+    ano_inicial = data.get("ano_inicial")
+    ano_final = data.get("ano_final")
 
+    filters = []
     if ncm:
-        query = query.filter(ImportacaoModel.ncm == ncm)
+        filters.append(NCMModel.codigo == ncm)
+    if ano_inicial and ano_final:
+        filters.append(ImportacaoModel.ano.between(ano_inicial, ano_final))
 
-    resultados = (
-        query.group_by(ImportacaoModel.uf_id)
-        .order_by(func.sum(ImportacaoModel.valor).desc())
-        .limit(6)
-        .all()
-    )
+    query_base = db.session.query(ImportacaoModel).join(ImportacaoModel.ncm)
 
-    return [{"uf_id": r.uf_id, "total": r.total} for r in resultados]
+    def get_result(group_by_field):
+        return (
+            query_base
+            .filter(*filters)
+            .with_entities(group_by_field, func.sum(ImportacaoModel.valor).label("total"))
+            .group_by(group_by_field)
+            .order_by(func.sum(ImportacaoModel.valor).desc())
+            .limit(6)
+            .all()
+        )
 
-@importacoes.route("/api/importacoes/por-via", methods=["POST"])
-def vias_mais_importaram():
-    db = SQLAlchemy.get_instance()
-    ncm = request.args.get("ncm")
+    estados = get_result(ImportacaoModel.uf_id)
+    vias = get_result(ImportacaoModel.via_id)
+    urfs = get_result(ImportacaoModel.urf_id)
+    paises = get_result(ImportacaoModel.pais_id)
 
-    query = db.session.query(
-        ImportacaoModel.via_id,
-        func.sum(ImportacaoModel.valor).label("total")
-    )
-
-    if ncm:
-        query = query.filter(ImportacaoModel.ncm == ncm)
-
-    resultados = (
-        query.group_by(ImportacaoModel.via_id)
-        .order_by(func.sum(ImportacaoModel.valor).desc())
-        .limit(6)
-        .all()
-    )
-
-    return [{"via_id": r.via_id, "total": r.total} for r in resultados]
-
-@importacoes.route("/api/importacoes/por-urf", methods=["POST"])
-def urfs_mais_importaram():
-    db = SQLAlchemy.get_instance()
-    ncm = request.args.get("ncm")
-
-    query = db.session.query(
-        ImportacaoModel.urf_id,
-        func.sum(ImportacaoModel.valor).label("total")
-    )
-
-    if ncm:
-        query = query.filter(ImportacaoModel.ncm == ncm)
-
-    resultados = (
-        query.group_by(ImportacaoModel.urf_id)
-        .order_by(func.sum(ImportacaoModel.valor).desc())
-        .limit(6)
-        .all()
-    )
-
-    return [{"urf_id": r.urf_id, "total": r.total} for r in resultados]
-
-@importacoes.route("/api/importacoes/por-pais", methods=["POST"])
-def paises_mais_exportaram_para_brasil():
-    db = SQLAlchemy.get_instance()
-    ncm = request.args.get("ncm")
-
-    query = db.session.query(
-        ImportacaoModel.pais_id,
-        func.sum(ImportacaoModel.valor).label("total")
-    )
-
-    if ncm:
-        query = query.filter(ImportacaoModel.ncm == ncm)
-        
-
-    resultados = (
-        query.group_by(ImportacaoModel.pais_id)
-        .order_by(func.sum(ImportacaoModel.valor).desc())
-        .limit(6)
-        .all()
-    )
-
-    return [{"pais_id": r.pais_id, "total": r.total} for r in resultados]
+    return {
+        "por_estado": [{"uf_id": r[0], "total": r[1]} for r in estados],
+        "por_via": [{"via_id": r[0], "total": r[1]} for r in vias],
+        "por_urf": [{"urf_id": r[0], "total": r[1]} for r in urfs],
+        "por_pais": [{"pais_id": r[0], "total": r[1]} for r in paises]
+    }

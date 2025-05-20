@@ -244,88 +244,43 @@ def _filter_year_or_period(query, year_end: int, year_start: int = None):
         return query.filter(ExportacaoModel.ano.between(year_start, year_end))
     return query.filter(ExportacaoModel.ano == year_end)
 
-@exportacoes.route("/api/exportacoes/por-estado", methods=["POST"])
-def estados_mais_exportaram():
+@exportacoes.route("/api/exportacoes/graficos-pesquisa", methods=["POST"])
+def graficos_pesquisa_exportacoes():
     db = SQLAlchemy.get_instance()
-    ncm = request.args.get("ncm")
+    data = request.get_json()
 
-    query = db.session.query(
-        ExportacaoModel.uf_id, func.sum(ExportacaoModel.valor).label("total")
-    )
+    ncm = data.get("ncm")
+    ano_inicial = data.get("ano_inicial")
+    ano_final = data.get("ano_final")
 
+    filters = []
     if ncm:
-        query = query.filter(ExportacaoModel.ncm == ncm)
+        filters.append(NCMModel.codigo == ncm)
+    if ano_inicial and ano_final:
+        filters.append(ExportacaoModel.ano.between(ano_inicial, ano_final))
 
-    resultados = (
-        query.group_by(ExportacaoModel.uf_id)
-             .order_by(func.sum(ExportacaoModel.valor).desc())
-             .limit(6)
-             .all()
-    )
+    # JOIN necessário se for filtrar por código NCM
+    query_base = db.session.query(ExportacaoModel).join(ExportacaoModel.ncm)
 
-    return [{"uf_id": r.uf_id, "total": r.total} for r in resultados]
+    def get_result(group_by_field):
+        return (
+            query_base
+            .filter(*filters)
+            .with_entities(group_by_field, func.sum(ExportacaoModel.valor).label("total"))
+            .group_by(group_by_field)
+            .order_by(func.sum(ExportacaoModel.valor).desc())
+            .limit(6)
+            .all()
+        )
 
+    estados = get_result(ExportacaoModel.uf_id)
+    vias = get_result(ExportacaoModel.via_id)
+    urfs = get_result(ExportacaoModel.urf_id)
+    paises = get_result(ExportacaoModel.pais_id)
 
-@exportacoes.route("/api/exportacoes/por-via", methods=["POST"])
-def vias_mais_exportaram():
-    db = SQLAlchemy.get_instance()
-    ncm = request.args.get("ncm")
-
-    query = db.session.query(
-        ExportacaoModel.via_id, func.sum(ExportacaoModel.valor).label("total")
-    )
-
-    if ncm:
-        query = query.filter(ExportacaoModel.ncm == ncm)
-
-    resultados = (
-        query.group_by(ExportacaoModel.via_id)
-             .order_by(func.sum(ExportacaoModel.valor).desc())
-             .limit(6)
-             .all()
-    )
-
-    return [{"via_id": r.via_id, "total": r.total} for r in resultados]
-
-
-@exportacoes.route("/api/exportacoes/por-urf", methods=["POST"])
-def urfs_mais_exportaram():
-    db = SQLAlchemy.get_instance()
-    ncm = request.args.get("ncm")
-
-    query = db.session.query(
-        ExportacaoModel.urf_id, func.sum(ExportacaoModel.valor).label("total")
-    )
-
-    if ncm:
-        query = query.filter(ExportacaoModel.ncm == ncm)
-
-    resultados = (
-        query.group_by(ExportacaoModel.urf_id)
-             .order_by(func.sum(ExportacaoModel.valor).desc())
-             .limit(6)
-             .all()
-    )
-
-    return [{"urf_id": r.urf_id, "total": r.total} for r in resultados]
-
-@exportacoes.route("/api/exportacoes/por-pais", methods=["POST"])
-def paises_mais_importaram_do_brasil():
-    db = SQLAlchemy.get_instance()
-    ncm = request.args.get("ncm")
-
-    query = db.session.query(
-        ExportacaoModel.pais_id, func.sum(ExportacaoModel.valor).label("total")
-    )
-
-    if ncm:
-        query = query.filter(ExportacaoModel.ncm == ncm)
-
-    resultados = (
-        query.group_by(ExportacaoModel.pais_id)
-             .order_by(func.sum(ExportacaoModel.valor).desc())
-             .limit(6)
-             .all()
-    )
-
-    return [{"pais_id": r.pais_id, "total": r.total} for r in resultados]
+    return {
+        "por_estado": [{"uf_id": r[0], "total": r[1]} for r in estados],
+        "por_via": [{"via_id": r[0], "total": r[1]} for r in vias],
+        "por_urf": [{"urf_id": r[0], "total": r[1]} for r in urfs],
+        "por_pais": [{"pais_id": r[0], "total": r[1]} for r in paises]
+    }
