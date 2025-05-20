@@ -73,3 +73,8 @@ balanca_comercial_fields = {
     "ano": fields.Integer,
     "valor": fields.Float,
 }
+
+balanca_variacao_fields = {
+    "uf_id": fields.Integer,
+    "percentual_variacao": fields.Float,
+}
