@@ -308,3 +308,24 @@ def urfs_mais_exportaram():
     )
 
     return [{"urf_id": r.urf_id, "total": r.total} for r in resultados]
+
+@exportacoes.route("/api/exportacoes/por-pais", methods=["POST"])
+def paises_mais_importaram_do_brasil():
+    db = SQLAlchemy.get_instance()
+    ncm = request.args.get("ncm")
+
+    query = db.session.query(
+        ExportacaoModel.pais_id, func.sum(ExportacaoModel.valor).label("total")
+    )
+
+    if ncm:
+        query = query.filter(ExportacaoModel.ncm == ncm)
+
+    resultados = (
+        query.group_by(ExportacaoModel.pais_id)
+             .order_by(func.sum(ExportacaoModel.valor).desc())
+             .limit(6)
+             .all()
+    )
+
+    return [{"pais_id": r.pais_id, "total": r.total} for r in resultados]
