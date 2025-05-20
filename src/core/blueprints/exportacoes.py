@@ -171,6 +171,18 @@ def vias_utilizadas():
     args = vias_utilizadas_args.parse_args(strict=True)
     db = SQLAlchemy.get_instance()
 
+    # Condição do periodo
+    filters = [ ExportacaoModel.uf_id == args["uf_id"] ]
+    ano_inicial = args.get("periodo_ano_inicial")
+    ano_final = args["periodo_ano_final"]
+
+    if ano_inicial is not None:
+        # Se o ano inicial for fornecido, filtramos no período [ano_inicial, ano_final]
+        filters.append(ExportacaoModel.ano.between(ano_inicial, ano_final))
+    else:
+        # Se o ano inicial não for fornecido, filtramos apenas pelo ano final
+        filters.append(ExportacaoModel.ano == ano_final)
+
     base_query = (
         db.session.query(
             func.count(ExportacaoModel.via_id).label("qtd"),
@@ -196,6 +208,18 @@ def urfs_utilizadas():
     args = urf_utilizadas_args.parse_args(strict=True)
 
     db = SQLAlchemy.get_instance()
+    
+    # Condição do periodo
+    filters = [ ExportacaoModel.uf_id == args["uf_id"] ]
+    ano_inicial = args.get("periodo_ano_inicial")
+    ano_final = args["periodo_ano_final"]
+    
+    if ano_inicial is not None:
+        # Se o ano inicial for fornecido, filtramos no período [ano_inicial, ano_final]
+        filters.append(ExportacaoModel.ano.between(ano_inicial, ano_final))
+    else:
+        # Se o ano inicial não for fornecido, filtramos apenas pelo ano final
+        filters.append(ExportacaoModel.ano == ano_final)
 
     base_query = db.session.query(
         ExportacaoModel.urf_id.label("urf_id"),
@@ -234,3 +258,44 @@ def _filter_year_or_period(query, year_end: int, year_start: int = None):
     if year_start:
         return query.filter(ExportacaoModel.ano.between(year_start, year_end))
     return query.filter(ExportacaoModel.ano == year_end)
+
+@exportacoes.route("/api/exportacoes/graficos-pesquisa", methods=["POST"])
+def graficos_pesquisa_exportacoes():
+    db = SQLAlchemy.get_instance()
+    data = request.get_json()
+
+    ncm = data.get("ncm")
+    ano_inicial = data.get("ano_inicial")
+    ano_final = data.get("ano_final")
+
+    filters = []
+    if ncm:
+        filters.append(NCMModel.codigo == ncm)
+    if ano_inicial and ano_final:
+        filters.append(ExportacaoModel.ano.between(ano_inicial, ano_final))
+
+    # JOIN necessário se for filtrar por código NCM
+    query_base = db.session.query(ExportacaoModel).join(ExportacaoModel.ncm)
+
+    def get_result(group_by_field):
+        return (
+            query_base
+            .filter(*filters)
+            .with_entities(group_by_field, func.sum(ExportacaoModel.valor).label("total"))
+            .group_by(group_by_field)
+            .order_by(func.sum(ExportacaoModel.valor).desc())
+            .limit(6)
+            .all()
+        )
+
+    estados = get_result(ExportacaoModel.uf_id)
+    vias = get_result(ExportacaoModel.via_id)
+    urfs = get_result(ExportacaoModel.urf_id)
+    paises = get_result(ExportacaoModel.pais_id)
+
+    return {
+        "por_estado": [{"uf_id": r[0], "total": r[1]} for r in estados],
+        "por_via": [{"via_id": r[0], "total": r[1]} for r in vias],
+        "por_urf": [{"urf_id": r[0], "total": r[1]} for r in urfs],
+        "por_pais": [{"pais_id": r[0], "total": r[1]} for r in paises]
+    }
