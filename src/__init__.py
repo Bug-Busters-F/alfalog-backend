@@ -22,8 +22,6 @@ def create_app():
     register_cli_commands(app)
 
     register_blueprints(app)
-    
-    from src.somas.model import SomaModel
 
     # Add API resources.
     add_resources(api)
