@@ -14,9 +14,6 @@ def importar(replace: bool = False):
 
     # para cada linha do CSV, criar um objeto PaisModel e salvar no BD
     for index, row in exp_df_base.iterrows():
-        # Se a primeira linha do CSV for cabeçalho, você pode pular index == 0
-        if index == 0:
-            continue
 
         pais = db.session.query(PaisModel).filter_by(codigo=row["CO_PAIS"]).first()
         if pais and not replace:
