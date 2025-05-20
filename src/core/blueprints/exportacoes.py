@@ -2,8 +2,18 @@ import marshal
 from flask import Blueprint, request
 from flask_restful import marshal_with, marshal
 from sqlalchemy import desc, func, text
-from ..request import valor_agregado_args, cargas_movimentadas_args, vias_utilizadas_args, urf_utilizadas_args
-from ..fields import response_fields_cargas_movimentadas, response_fields_valores_agregados, vias_fields, urfs_fields
+from ..request import (
+    valor_agregado_args,
+    cargas_movimentadas_args,
+    vias_utilizadas_args,
+    urf_utilizadas_args,
+)
+from ..fields import (
+    response_fields_cargas_movimentadas,
+    response_fields_valores_agregados,
+    vias_fields,
+    urfs_fields,
+)
 from src.exportacoes.model import ExportacaoModel
 from src.ncms.model import NCMModel
 from src.ufs.model import UFModel
@@ -18,14 +28,16 @@ exportacoes = Blueprint("exportacoes", __name__)
 @marshal_with(response_fields_valores_agregados)
 def valor_agregado():
     args = valor_agregado_args.parse_args(strict=True)
-    db = SQLAlchemy.get_instance() # Ou sua forma de obter a instância do DB
+    db = SQLAlchemy.get_instance()  # Ou sua forma de obter a instância do DB
 
     # Cálculo da paginação
     tamanho_pagina = max(1, args["tamanho_pagina"])
     cursor = max(1, args["cursor"])
     offset = (cursor - 1) * tamanho_pagina
 
-    valor_agregado_expr = (ExportacaoModel.valor / func.nullif(ExportacaoModel.peso, 0)).label("valor_agregado")
+    valor_agregado_expr = (
+        ExportacaoModel.valor / func.nullif(ExportacaoModel.peso, 0)
+    ).label("valor_agregado")
 
     base_query = (
         db.session.query(
@@ -49,16 +61,18 @@ def valor_agregado():
         .filter(UFModel.id == args["uf_id"])
     )
 
-    ano_inicial = args.get("ano_inicial") # Usar .get() para evitar KeyError se não existir
+    ano_inicial = args.get(
+        "ano_inicial"
+    )  # Usar .get() para evitar KeyError se não existir
     base_query = _filter_year_or_period(base_query, args["ano"], ano_inicial)
 
     order_clause = (desc(valor_agregado_expr), desc(ExportacaoModel.id))
 
     # Buscar 'tamanho_pagina + 1' registros para checar se há próxima página
     num_to_fetch = tamanho_pagina + 1
-    entries_plus_one = base_query.order_by(
-        *order_clause
-    ).limit(num_to_fetch).offset(offset).all()
+    entries_plus_one = (
+        base_query.order_by(*order_clause).limit(num_to_fetch).offset(offset).all()
+    )
 
     # Determinar se existe uma próxima página
     # Se buscamos N+1 e recebemos N+1, então há mais registros -> has_next = True
@@ -82,14 +96,16 @@ def valor_agregado():
 
     return response
 
+
 @exportacoes.route("/api/exportacoes/cargas-movimentadas", methods=["POST"])
 @marshal_with(response_fields_cargas_movimentadas)
 def cargas_movimentadas():
     db = SQLAlchemy.get_instance()
     args = cargas_movimentadas_args.parse_args(strict=True)
 
-    valor_agregado_expr = (ExportacaoModel.valor / func.nullif(ExportacaoModel.peso, 0)).label("valor_agregado")
-
+    valor_agregado_expr = (
+        ExportacaoModel.valor / func.nullif(ExportacaoModel.peso, 0)
+    ).label("valor_agregado")
 
     # Cálculo da paginação
     tamanho_pagina = max(1, args["tamanho_pagina"])
@@ -116,15 +132,17 @@ def cargas_movimentadas():
         .filter(UFModel.id == args["uf_id"])
     )
 
-    ano_inicial = args.get("ano_inicial") # Usar .get() para evitar KeyError se não existir
+    ano_inicial = args.get(
+        "ano_inicial"
+    )  # Usar .get() para evitar KeyError se não existir
     base_query = _filter_year_or_period(base_query, args.get("ano"), ano_inicial)
     order_clause = (desc(ExportacaoModel.peso), desc(ExportacaoModel.id))
 
     # Buscar 'tamanho_pagina + 1' registros
     num_to_fetch = tamanho_pagina + 1
-    entries_plus_one = base_query.order_by(
-        *order_clause
-    ).limit(num_to_fetch).offset(offset).all()
+    entries_plus_one = (
+        base_query.order_by(*order_clause).limit(num_to_fetch).offset(offset).all()
+    )
 
     # Determinar se há uma próxima página
     has_next = len(entries_plus_one) > tamanho_pagina
@@ -168,19 +186,19 @@ def vias_utilizadas():
     base_query = (
         db.session.query(
             func.count(ExportacaoModel.via_id).label("qtd"),
-            ExportacaoModel.via_id.label("via_id")
+            ExportacaoModel.via_id.label("via_id"),
         )
         .select_from(ExportacaoModel)
         .join(ViaModel, ExportacaoModel.via_id == ViaModel.id)
-        .filter(*filters)
-        .group_by(ExportacaoModel.via_id)
-        .order_by(desc("qtd"))
+        .filter(ExportacaoModel.uf_id == args["uf_id"])
     )
+
+    ano_inicial = args.get("ano_inicial")
+    base_query = _filter_year_or_period(base_query, args.get("ano"), ano_inicial)
+    base_query = base_query.group_by(ExportacaoModel.via_id).order_by(desc("qtd"))
 
     entries = base_query.all()
     return entries
-    # comando p/ testes CMD
-    # curl -X POST http://127.0.0.1:5000/api/exportacoes/vias-utilizadas -H "Content-Type: application/json" -d "{\"ano\": 2023, \"uf_id\": 12}"
 
 
 @exportacoes.route("/api/exportacoes/urfs-utilizadas", methods=["POST"])
@@ -203,20 +221,17 @@ def urfs_utilizadas():
         # Se o ano inicial não for fornecido, filtramos apenas pelo ano final
         filters.append(ExportacaoModel.ano == ano_final)
 
-    entries = (
-        db.session.query(
-            ExportacaoModel.urf_id.label("urf_id"),
-            db.func.count(ExportacaoModel.urf_id).label("qtd")
-        )
-        .filter(*filters)
-        .group_by(ExportacaoModel.urf_id)
-        .all()
-    )
+    base_query = db.session.query(
+        ExportacaoModel.urf_id.label("urf_id"),
+        db.func.count(ExportacaoModel.urf_id).label("qtd"),
+    ).filter(ExportacaoModel.uf_id == args["uf_id"])
+
+    ano_inicial = args.get("ano_inicial")
+    base_query = _filter_year_or_period(base_query, args.get("ano"), ano_inicial)
+    entries = base_query.group_by(ExportacaoModel.urf_id).all()
 
     return entries
 
-    # comando p/ testes CMD
-    # curl -X POST http://127.0.0.1:5000/api/exportacoes/urfs-utilizadas -H "Content-Type: application/json" -d "{\"ano\": 2023, \"uf_id\": 12}"
 
 @exportacoes.route("/api/exportacoes/download", methods=["GET"])
 def download_exportacoes():
