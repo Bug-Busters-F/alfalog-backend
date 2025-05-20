@@ -17,7 +17,6 @@ balanca_comercial_response_fields = {
 @main.route("/api/balanca-comercial", methods=["POST"])
 @marshal_with(balanca_comercial_response_fields)
 def calcular_balanca_comercial():
-    """Calcula a balança comercial (exportação - importação) por ano para um estado."""
     args = balanca_comercial_args.parse_args(strict=True)
     db = SQLAlchemy.get_instance()
 

@@ -243,3 +243,44 @@ def _filter_year_or_period(query, year_end: int, year_start: int = None):
     if year_start:
         return query.filter(ExportacaoModel.ano.between(year_start, year_end))
     return query.filter(ExportacaoModel.ano == year_end)
+
+@exportacoes.route("/api/exportacoes/graficos-pesquisa", methods=["POST"])
+def graficos_pesquisa_exportacoes():
+    db = SQLAlchemy.get_instance()
+    data = request.get_json()
+
+    ncm = data.get("ncm")
+    ano_inicial = data.get("ano_inicial")
+    ano_final = data.get("ano_final")
+
+    filters = []
+    if ncm:
+        filters.append(NCMModel.codigo == ncm)
+    if ano_inicial and ano_final:
+        filters.append(ExportacaoModel.ano.between(ano_inicial, ano_final))
+
+    # JOIN necessário se for filtrar por código NCM
+    query_base = db.session.query(ExportacaoModel).join(ExportacaoModel.ncm)
+
+    def get_result(group_by_field):
+        return (
+            query_base
+            .filter(*filters)
+            .with_entities(group_by_field, func.sum(ExportacaoModel.valor).label("total"))
+            .group_by(group_by_field)
+            .order_by(func.sum(ExportacaoModel.valor).desc())
+            .limit(6)
+            .all()
+        )
+
+    estados = get_result(ExportacaoModel.uf_id)
+    vias = get_result(ExportacaoModel.via_id)
+    urfs = get_result(ExportacaoModel.urf_id)
+    paises = get_result(ExportacaoModel.pais_id)
+
+    return {
+        "por_estado": [{"uf_id": r[0], "total": r[1]} for r in estados],
+        "por_via": [{"via_id": r[0], "total": r[1]} for r in vias],
+        "por_urf": [{"urf_id": r[0], "total": r[1]} for r in urfs],
+        "por_pais": [{"pais_id": r[0], "total": r[1]} for r in paises]
+    }

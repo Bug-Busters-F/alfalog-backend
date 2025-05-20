@@ -238,3 +238,42 @@ def _filter_year_or_period(query, year_end: int, year_start: int = None):
         return query.filter(ImportacaoModel.ano.between(year_start, year_end))
     return query.filter(ImportacaoModel.ano == year_end)
 
+@importacoes.route("/api/importacoes/graficos-pesquisa", methods=["POST"])
+def graficos_pesquisa_importacoes():
+    db = SQLAlchemy.get_instance()
+    data = request.get_json()
+
+    ncm = data.get("ncm")
+    ano_inicial = data.get("ano_inicial")
+    ano_final = data.get("ano_final")
+
+    filters = []
+    if ncm:
+        filters.append(NCMModel.codigo == ncm)
+    if ano_inicial and ano_final:
+        filters.append(ImportacaoModel.ano.between(ano_inicial, ano_final))
+
+    query_base = db.session.query(ImportacaoModel).join(ImportacaoModel.ncm)
+
+    def get_result(group_by_field):
+        return (
+            query_base
+            .filter(*filters)
+            .with_entities(group_by_field, func.sum(ImportacaoModel.valor).label("total"))
+            .group_by(group_by_field)
+            .order_by(func.sum(ImportacaoModel.valor).desc())
+            .limit(6)
+            .all()
+        )
+
+    estados = get_result(ImportacaoModel.uf_id)
+    vias = get_result(ImportacaoModel.via_id)
+    urfs = get_result(ImportacaoModel.urf_id)
+    paises = get_result(ImportacaoModel.pais_id)
+
+    return {
+        "por_estado": [{"uf_id": r[0], "total": r[1]} for r in estados],
+        "por_via": [{"via_id": r[0], "total": r[1]} for r in vias],
+        "por_urf": [{"urf_id": r[0], "total": r[1]} for r in urfs],
+        "por_pais": [{"pais_id": r[0], "total": r[1]} for r in paises]
+    }
