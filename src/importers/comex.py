@@ -288,6 +288,7 @@ def importacoes(ctx):
     except Exception as e:
         click.echo(f"❌ Erro ao import Transações: {str(e)}", err=True)
 
+
 @update.command("balanca")
 @click.pass_context
 @with_appcontext
@@ -305,3 +306,25 @@ def balanca(ctx):
         click.echo("✅ Balança comercial importada.")
     except Exception as e:
         click.echo(f"❌ Erro ao importar balança comercial: {str(e)}", err=True)
+
+@update.command("somas")
+@click.pass_context
+@with_appcontext
+@with_progress_animation()
+def somas(ctx):
+    """Importa as Somas de Importação e Exportação por UF e ano."""
+    replace = ctx.obj["replace"]
+    click.echo("📊 Importando as somas dos estados...")
+
+    from src.utils.sqlalchemy import SQLAlchemy
+    from .transacoes import calcular_somas_por_uf_e_ano_csv
+
+    db = SQLAlchemy.get_instance()
+
+    try:
+        caminho_csv_imp = "./data/dados_comex_IMP_2014_2024.csv"
+        caminho_csv_exp = "./data/dados_comex_EXP_2014_2024.csv"
+        calcular_somas_por_uf_e_ano_csv(db, caminho_csv_imp, caminho_csv_exp, replace)
+        click.echo("✅ Somas importadas com sucesso!")
+    except Exception as e:
+        click.echo(f"❌ Erro ao importar somas: {str(e)}", err=True)
