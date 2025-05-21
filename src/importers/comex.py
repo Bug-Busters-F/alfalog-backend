@@ -288,6 +288,25 @@ def importacoes(ctx):
     except Exception as e:
         click.echo(f"❌ Erro ao import Transações: {str(e)}", err=True)
 
+
+@update.command("balanca")
+@click.pass_context
+@with_appcontext
+@with_progress_animation("Calculando balança comercial")
+def balanca(ctx):
+    """Importa os dados de balança comercial (exportação - importação)."""
+    replace = ctx.obj["replace"]
+
+    from src.utils.sqlalchemy import SQLAlchemy
+    from .balanca import importar_balanca
+
+    try:
+        db = SQLAlchemy.get_instance()
+        importar_balanca(db, replace == "sim")
+        click.echo("✅ Balança comercial importada.")
+    except Exception as e:
+        click.echo(f"❌ Erro ao importar balança comercial: {str(e)}", err=True)
+
 @update.command("somas")
 @click.pass_context
 @with_appcontext

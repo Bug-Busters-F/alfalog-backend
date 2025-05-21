@@ -125,4 +125,10 @@ def add_resources(api: Api) -> None:
     api.add_resource(Importacoes, "/api/importacoes", "/api/importacoes/")
     api.add_resource(Importacao, "/api/importacoes/<int:id>")
 
+    # Balança resources
+    from src.balanca.resources import Balancas, Balanca
+
+    api.add_resource(Balancas, "/api/balancas", "/api/balancas/")
+    api.add_resource(Balanca, "/api/balancas/<int:id>")
+
 
