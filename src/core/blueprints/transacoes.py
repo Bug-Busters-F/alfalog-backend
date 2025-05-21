@@ -10,7 +10,6 @@ from src.paises.model import PaisModel
 from src.ufs.model import UFModel
 from src.vias.model import ViaModel
 from src.urfs.model import URFModel
-from src.ues.model import UEModel
 from src.utils.sqlalchemy import SQLAlchemy
 from math import ceil
 
@@ -26,7 +25,7 @@ def listar_transacoes():
         coNcm     = request.args.get('coNcm')
         sgUfNcm   = request.args.get('sgUfNcm')
         coVia     = request.args.get('coVia')
-        coUrf     = request.args.get('coUrf')
+        noUrf     = request.args.get('noUrf')
         searchNcm = request.args.get('searchNcm')
         sortBy    = request.args.get('sortBy', 'ano')
         sortOrder = request.args.get('sortOrder', 'asc')
@@ -41,7 +40,7 @@ def listar_transacoes():
         current_app.logger.debug(f"Args: {request.args.to_dict()}")
 
         # Validação: ao menos um filtro ou searchNcm
-        if not any([coAno, coMes, coPais, coNcm, sgUfNcm, coVia, coUrf, searchNcm]):
+        if not any([coAno, coMes, coPais, coNcm, sgUfNcm, coVia, noUrf, searchNcm]):
             return jsonify({'error': 'Informe ao menos um filtro ou searchNcm'}), 400
 
         # Conversão helper
@@ -65,7 +64,7 @@ def listar_transacoes():
             filtros_exp.append(ExportacaoModel.uf_id == v)
         if coVia and (v := to_int(coVia)) is not None:
             filtros_exp.append(ExportacaoModel.via_id == v)
-        if coUrf and (v := to_int(coUrf)) is not None:
+        if noUrf and (v := to_int(noUrf)) is not None:
             filtros_exp.append(ExportacaoModel.urf_id == v)
         if searchNcm:
             filtros_exp.append(
@@ -90,7 +89,7 @@ def listar_transacoes():
             filtros_imp.append(ImportacaoModel.uf_id == v)
         if coVia and (v := to_int(coVia)) is not None:
             filtros_imp.append(ImportacaoModel.via_id == v)
-        if coUrf and (v := to_int(coUrf)) is not None:
+        if noUrf and (v := to_int(noUrf)) is not None:
             filtros_imp.append(ImportacaoModel.urf_id == v)
         if searchNcm:
             filtros_imp.append(
@@ -128,7 +127,7 @@ def listar_transacoes():
                 PaisExp.nome.label('pais'),
                 UFExp.sigla.label('uf'),
                 ViaExp.nome.label('via'),
-                URFExp.codigo.label('urf'),
+                URFExp.nome.label('urf'),
                 ExportacaoModel.peso.label('peso'),
                 ExportacaoModel.valor.label('valor'),
                 literal('exportacao').label('tipo')
@@ -152,7 +151,7 @@ def listar_transacoes():
                 PaisImp.nome.label('pais'),
                 UFImp.sigla.label('uf'),
                 ViaImp.nome.label('via'),
-                URFImp.codigo.label('urf'),
+                URFImp.nome.label('urf'),
                 ImportacaoModel.peso.label('peso'),
                 ImportacaoModel.valor.label('valor'),
                 literal('importacao').label('tipo')
@@ -247,7 +246,7 @@ def distinct_field():
         'coPais':  (PaisModel, ExportacaoModel.pais,  ImportacaoModel.pais,  'nome'),
         'sgUfNcm': (UFModel,   ExportacaoModel.uf,    ImportacaoModel.uf,    'sigla'),
         'coVia':   (ViaModel,  ExportacaoModel.via,   ImportacaoModel.via,   'nome'),
-        'coUrf':   (URFModel,  ExportacaoModel.urf,   ImportacaoModel.urf,   'codigo')
+        'noUrf':   (URFModel,  ExportacaoModel.urf,   ImportacaoModel.urf,   'nome')
     }
     if field in rel_map:
         Model, exp_rel, imp_rel, attr = rel_map[field]
