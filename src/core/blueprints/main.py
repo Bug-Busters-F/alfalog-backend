@@ -22,8 +22,10 @@ balanca_comercial_variacao_response_fields = {
 
 def calcular_variacao_percentual(valor_inicial, valor_final):
     if valor_inicial == 0:
-        return 0 if valor_final == 0 else 100  # Caso o valor inicial seja 0 e o final não, consideramos um aumento de 100%
-    return round(((valor_final - valor_inicial) / valor_inicial) * 100,2)
+        if valor_final == 0:
+            return 0
+        return 100 if valor_final > 0 else -100
+    return round(((valor_final - valor_inicial) / abs(valor_inicial)) * 100, 2)
 
 @main.route("/api/balanca-comercial", methods=["POST"])
 @marshal_with(balanca_comercial_response_fields)
@@ -86,37 +88,32 @@ def top_estados_ascencao_declinio():
 
     db = SQLAlchemy.get_instance()
 
-    # Consultando a tabela 'balanca' para obter os valores por estado (uf_id) e ano
     balancas = db.session.query(
         BalancaModel.uf_id,
         BalancaModel.ano,
         BalancaModel.valor
     ).filter(
-        BalancaModel.ano.in_([ano_inicial, ano_final])
+        BalancaModel.ano.in_(range(ano_inicial, ano_final + 1))
     ).all()
 
-    # Organizando os dados por estado e ano
     dados_balanca = {(b.uf_id, b.ano): b.valor for b in balancas}
 
-    # Criação da lista para armazenar os dados de variação percentual
     estados_variacao = []
 
-    # Para cada estado, calcular a variação percentual
     for uf_id in set([b.uf_id for b in balancas]):
-        valor_inicial = dados_balanca.get((uf_id, ano_inicial), 0)
-        valor_final = dados_balanca.get((uf_id, ano_final), 0)
+        valores = [dados_balanca.get((uf_id, ano), 0) for ano in range(ano_inicial, ano_final + 1)]
+        valor_inicial = valores[0]
+        valor_final = valores[-1]
 
-        # Calcular a variação percentual
         percentual_variacao = calcular_variacao_percentual(valor_inicial, valor_final)
 
         estados_variacao.append({
             "uf_id": uf_id,
-            "percentual_variacao": percentual_variacao
+            "percentual_variacao": percentual_variacao,
+            "valores": valores
         })
 
-    # Ordenar os estados pela variação percentual (maior para menor) para ascensão e declínio
     estados_ascensao = sorted(estados_variacao, key=lambda x: x["percentual_variacao"], reverse=True)[:5]
     estados_declinio = sorted(estados_variacao, key=lambda x: x["percentual_variacao"])[:5]
 
-    # Retornar os estados em ascensão e declínio
     return {"balanca": estados_ascensao + estados_declinio}
