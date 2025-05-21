@@ -158,25 +158,21 @@ def cargas_movimentadas():
 
     return response
 
-
 @importacoes.route("/api/importacoes/vias-utilizadas", methods=["POST"])
 @marshal_with(vias_fields)
 def vias_utilizadas():
     """Retorna as vias e a quantidade de vezes que foram usadas em um estado."""
     args = vias_utilizadas_args.parse_args(strict=True)
-
     db = SQLAlchemy.get_instance()
-    # Condição do periodo
-    filters = [ ImportacaoModel.uf_id == args["uf_id"] ]
-    ano_inicial = args.get("periodo_ano_inicial")
-    ano_final = args["periodo_ano_final"]
+
+    filters = [ImportacaoModel.uf_id == args["uf_id"]]
+    ano_inicial = args.get("ano_inicial")
+    ano_final = args["ano_final"]
+
     if ano_inicial is not None:
-        # Se o ano inicial for fornecido, filtramos no período [ano_inicial, ano_final]
         filters.append(ImportacaoModel.ano.between(ano_inicial, ano_final))
     else:
-        # Se o ano inicial não for fornecido, filtramos apenas pelo ano final
         filters.append(ImportacaoModel.ano == ano_final)
-
 
     base_query = (
         db.session.query(
@@ -184,15 +180,14 @@ def vias_utilizadas():
             ImportacaoModel.via_id.label("via_id"),
         )
         .join(ViaModel, ImportacaoModel.via_id == ViaModel.id)
-        .filter(ImportacaoModel.uf_id == args["uf_id"])
+        .filter(*filters)
+        .group_by(ImportacaoModel.via_id)
+        .order_by(desc("qtd"))
     )
-
-    ano_inicial = args.get("ano_inicial")
-    base_query = _filter_year_or_period(base_query, args.get("ano"), ano_inicial)
-    base_query = base_query.group_by(ImportacaoModel.via_id).order_by(desc("qtd"))
 
     entries = base_query.all()
     return entries
+
 
 
 @importacoes.route("/api/importacoes/urfs-utilizadas", methods=["POST"])
@@ -200,29 +195,30 @@ def vias_utilizadas():
 def urfs_utilizadas():
     """Retorna as URFs e a quantidade de vezes que foram usadas."""
     args = urf_utilizadas_args.parse_args(strict=True)
-
     db = SQLAlchemy.get_instance()
-    # Condição do periodo
-    filters = [ ImportacaoModel.uf_id == args["uf_id"] ]
-    ano_inicial = args.get("periodo_ano_inicial")
-    ano_final = args["periodo_ano_final"]
+
+    filters = [ImportacaoModel.uf_id == args["uf_id"]]
+    ano_inicial = args.get("ano_inicial")
+    ano_final = args["ano_final"]
+
     if ano_inicial is not None:
-        # Se o ano inicial for fornecido, filtramos no período [ano_inicial, ano_final]
         filters.append(ImportacaoModel.ano.between(ano_inicial, ano_final))
     else:
-        # Se o ano inicial não for fornecido, filtramos apenas pelo ano final
         filters.append(ImportacaoModel.ano == ano_final)
 
-    base_query = db.session.query(
-        ImportacaoModel.urf_id.label("urf_id"),
-        db.func.count(ImportacaoModel.urf_id).label("qtd"),
-    ).filter(ImportacaoModel.uf_id == args["uf_id"])
+    base_query = (
+        db.session.query(
+            ImportacaoModel.urf_id.label("urf_id"),
+            db.func.count(ImportacaoModel.urf_id).label("qtd"),
+        )
+        .filter(*filters)
+        .group_by(ImportacaoModel.urf_id)
+        .order_by(db.func.count(ImportacaoModel.urf_id).desc())
+    )
 
-    ano_inicial = args.get("ano_inicial")
-    base_query = _filter_year_or_period(base_query, args.get("ano"), ano_inicial)
-    entries = base_query.group_by(ImportacaoModel.urf_id).all()
-
+    entries = base_query.all()
     return entries
+
 
     # comando p/ testes CMD
     # curl -X POST http://127.0.0.1:5000/api/exportacoes/urfs-utilizadas -H "Content-Type: application/json" -d "{\"ano\": 2023, \"uf_id\": 12}"

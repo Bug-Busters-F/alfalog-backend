@@ -171,16 +171,14 @@ def vias_utilizadas():
     args = vias_utilizadas_args.parse_args(strict=True)
     db = SQLAlchemy.get_instance()
 
-    # Condição do periodo
-    filters = [ ExportacaoModel.uf_id == args["uf_id"] ]
-    ano_inicial = args.get("periodo_ano_inicial")
-    ano_final = args["periodo_ano_final"]
+    # Condição do período
+    filters = [ExportacaoModel.uf_id == args["uf_id"]]
+    ano_inicial = args.get("ano_inicial")
+    ano_final = args["ano_final"]
 
     if ano_inicial is not None:
-        # Se o ano inicial for fornecido, filtramos no período [ano_inicial, ano_final]
         filters.append(ExportacaoModel.ano.between(ano_inicial, ano_final))
     else:
-        # Se o ano inicial não for fornecido, filtramos apenas pelo ano final
         filters.append(ExportacaoModel.ano == ano_final)
 
     base_query = (
@@ -190,15 +188,14 @@ def vias_utilizadas():
         )
         .select_from(ExportacaoModel)
         .join(ViaModel, ExportacaoModel.via_id == ViaModel.id)
-        .filter(ExportacaoModel.uf_id == args["uf_id"])
+        .filter(*filters)
+        .group_by(ExportacaoModel.via_id)
+        .order_by(desc("qtd"))
     )
-
-    ano_inicial = args.get("ano_inicial")
-    base_query = _filter_year_or_period(base_query, args.get("ano"), ano_inicial)
-    base_query = base_query.group_by(ExportacaoModel.via_id).order_by(desc("qtd"))
 
     entries = base_query.all()
     return entries
+
 
 
 @exportacoes.route("/api/exportacoes/urfs-utilizadas", methods=["POST"])
@@ -206,30 +203,29 @@ def vias_utilizadas():
 def urfs_utilizadas():
     """Retorna as URFs e a quantidade de vezes que foram usadas."""
     args = urf_utilizadas_args.parse_args(strict=True)
-
     db = SQLAlchemy.get_instance()
-    
-    # Condição do periodo
-    filters = [ ExportacaoModel.uf_id == args["uf_id"] ]
-    ano_inicial = args.get("periodo_ano_inicial")
-    ano_final = args["periodo_ano_final"]
-    
+
+    # Filtros com base no período e UF
+    filters = [ExportacaoModel.uf_id == args["uf_id"]]
+    ano_inicial = args.get("ano_inicial")
+    ano_final = args["ano_final"]
+
     if ano_inicial is not None:
-        # Se o ano inicial for fornecido, filtramos no período [ano_inicial, ano_final]
         filters.append(ExportacaoModel.ano.between(ano_inicial, ano_final))
     else:
-        # Se o ano inicial não for fornecido, filtramos apenas pelo ano final
         filters.append(ExportacaoModel.ano == ano_final)
 
-    base_query = db.session.query(
-        ExportacaoModel.urf_id.label("urf_id"),
-        db.func.count(ExportacaoModel.urf_id).label("qtd"),
-    ).filter(ExportacaoModel.uf_id == args["uf_id"])
+    base_query = (
+        db.session.query(
+            ExportacaoModel.urf_id.label("urf_id"),
+            db.func.count(ExportacaoModel.urf_id).label("qtd"),
+        )
+        .filter(*filters)
+        .group_by(ExportacaoModel.urf_id)
+        .order_by(db.func.count(ExportacaoModel.urf_id).desc())
+    )
 
-    ano_inicial = args.get("ano_inicial")
-    base_query = _filter_year_or_period(base_query, args.get("ano"), ano_inicial)
-    entries = base_query.group_by(ExportacaoModel.urf_id).all()
-
+    entries = base_query.all()
     return entries
 
 

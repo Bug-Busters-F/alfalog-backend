@@ -51,10 +51,9 @@ cargas_movimentadas_args.add_argument("cursor", type=int, required=False, defaul
     uf_id:int          -  ID da sigla do uf informado
     ano:int            -  Ano que ocorreu
 """
-# Vias utilizadas
 vias_utilizadas_args = reqparse.RequestParser()
 vias_utilizadas_args.add_argument(
-    "ano", type=int, required=True, help="Um ano deve ser informado."
+    "ano_final", type=int, required=True, help="Um ano final deve ser informado."
 )
 vias_utilizadas_args.add_argument(
     "uf_id", type=int, required=True, help="ID da UF inválido."
@@ -65,10 +64,11 @@ vias_utilizadas_args.add_argument(
     required=False,
     help="Informe um ano de início para visualizar um período.",
 )
+
 # Urf utilizadas
 urf_utilizadas_args = reqparse.RequestParser()
 urf_utilizadas_args.add_argument(
-    "ano", type=int, required=True, help="Um ano deve ser informado."
+    "ano_final", type=int, required=True, help="Um ano final deve ser informado."
 )
 urf_utilizadas_args.add_argument(
     "uf_id", type=int, required=True, help="ID da UF inválido."
@@ -80,10 +80,6 @@ urf_utilizadas_args.add_argument(
     help="Informe um ano de início para visualizar um período.",
 )
 
-"""
-    Argumentos para valor [ Balança Comercial ]
-    uf_id:int          -  ID da sigla do uf informado
-"""
 # Balança comercial
 balanca_comercial_args = reqparse.RequestParser()
 balanca_comercial_args.add_argument(
