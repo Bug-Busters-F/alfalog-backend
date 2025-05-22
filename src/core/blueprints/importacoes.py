@@ -278,7 +278,7 @@ def estatisticas_por_estado():
 
     return retorno
 
-@importacoes.route("/api/exportacoes/comparacao-estados", methods=["POST"])
+@importacoes.route("/api/importacoes/comparacao-estados", methods=["POST"])
 def estatisticas_por_estado_exp():  
     """ Retorna os dados de dois estados passados no parametro pelo uf_id """
     db = SQLAlchemy.get_instance()
