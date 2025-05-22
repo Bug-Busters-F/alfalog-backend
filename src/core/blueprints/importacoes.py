@@ -277,3 +277,43 @@ def estatisticas_por_estado():
         })
 
     return retorno
+
+@importacoes.route("/api/exportacoes/comparacao-estados", methods=["POST"])
+def estatisticas_por_estado_exp():  
+    """ Retorna os dados de dois estados passados no parametro pelo uf_id """
+    db = SQLAlchemy.get_instance()
+    args = request.get_json()
+
+    estados = args.get("estados")
+    ano_inicial = args.get("ano_inicial")
+    ano_final = args.get("ano_final")
+
+    if not estados or not ano_inicial or not ano_final:
+        return {"message": "Parâmetros obrigatórios: estados, ano_inicial, ano_final"}, 400
+
+    resultados = (
+        db.session.query(
+            ImportacaoModel.uf_id,
+            ImportacaoModel.ano,
+            func.sum(ImportacaoModel.valor).label("export_valor"),
+            func.sum(ImportacaoModel.peso).label("peso"),
+        )
+        .filter(
+            ImportacaoModel.uf_id.in_(estados),
+            ImportacaoModel.ano.between(ano_inicial, ano_final)
+        )
+        .group_by(ImportacaoModel.uf_id, ImportacaoModel.ano)
+        .order_by(ImportacaoModel.uf_id, ImportacaoModel.ano)
+        .all()
+    )
+
+    retorno = []
+    for row in resultados:
+        retorno.append({
+            "state": row.uf_id,
+            "year": row.ano,
+            "Valor FOB": float(row.export_valor or 0),
+            "Peso (Kg)": float(row.peso or 0),
+        })
+
+    return retorno

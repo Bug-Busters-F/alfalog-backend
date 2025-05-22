@@ -245,7 +245,7 @@ def _filter_year_or_period(query, year_end: int, year_start: int = None):
     return query.filter(ExportacaoModel.ano == year_end)
 
 @exportacoes.route("/api/exportacoes/comparacao-estados", methods=["POST"])
-def estatisticas_por_estado():  
+def estatisticas_por_estado_imp():  
     """ Retorna os dados de dois estados passados no parametro pelo uf_id """
     db = SQLAlchemy.get_instance()
     args = request.get_json()
