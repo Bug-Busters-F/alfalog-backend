@@ -250,6 +250,46 @@ def _filter_year_or_period(query, year_end: int, year_start: int = None):
         return query.filter(ImportacaoModel.ano.between(year_start, year_end))
     return query.filter(ImportacaoModel.ano == year_end)
 
+@importacoes.route("/api/importacoes/comparacao-estados", methods=["POST"])
+def estatisticas_por_estado():  
+    """ Retorna os dados de dois estados passados no parametro pelo uf_id """
+    db = SQLAlchemy.get_instance()
+    args = request.get_json()
+
+    estados = args.get("estados")
+    ano_inicial = args.get("ano_inicial")
+    ano_final = args.get("ano_final")
+
+    if not estados or not ano_inicial or not ano_final:
+        return {"message": "Parâmetros obrigatórios: estados, ano_inicial, ano_final"}, 400
+
+    resultados = (
+        db.session.query(
+            ImportacaoModel.uf_id,
+            ImportacaoModel.ano,
+            func.sum(ImportacaoModel.valor).label("export_valor"),
+            func.sum(ImportacaoModel.peso).label("peso"),
+        )
+        .filter(
+            ImportacaoModel.uf_id.in_(estados),
+            ImportacaoModel.ano.between(ano_inicial, ano_final)
+        )
+        .group_by(ImportacaoModel.uf_id, ImportacaoModel.ano)
+        .order_by(ImportacaoModel.uf_id, ImportacaoModel.ano)
+        .all()
+    )
+
+    retorno = []
+    for row in resultados:
+        retorno.append({
+            "state": row.uf_id,
+            "year": row.ano,
+            "Valor FOB": float(row.export_valor or 0),
+            "Peso (Kg)": float(row.peso or 0),
+        })
+
+    return retorno
+  
 @importacoes.route("/api/importacoes/graficos-pesquisa", methods=["POST"])
 def graficos_pesquisa_importacoes():
     db = SQLAlchemy.get_instance()
