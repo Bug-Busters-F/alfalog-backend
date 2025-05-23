@@ -81,6 +81,7 @@ balanca_variacao_fields = {
 forecast_fields = {
     "id": fields.Integer,
     "ds": fields.String,
+    "y": fields.Float,
     "yhat": fields.Float,
     "yhat_lower": fields.Float,
     "yhat_upper": fields.Float,
