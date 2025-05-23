@@ -197,7 +197,6 @@ def vias_utilizadas():
     return entries
 
 
-
 @exportacoes.route("/api/exportacoes/urfs-utilizadas", methods=["POST"])
 @marshal_with(urfs_fields)
 def urfs_utilizadas():
@@ -255,9 +254,10 @@ def _filter_year_or_period(query, year_end: int, year_start: int = None):
         return query.filter(ExportacaoModel.ano.between(year_start, year_end))
     return query.filter(ExportacaoModel.ano == year_end)
 
+
 @exportacoes.route("/api/exportacoes/comparacao-estados", methods=["POST"])
-def estatisticas_por_estado_imp():  
-    """ Retorna os dados de dois estados passados no parametro pelo uf_id """
+def estatisticas_por_estado_imp():
+    """Retorna os dados de dois estados passados no parametro pelo uf_id"""
     db = SQLAlchemy.get_instance()
     args = request.get_json()
 
@@ -266,7 +266,9 @@ def estatisticas_por_estado_imp():
     ano_final = args.get("ano_final")
 
     if not estados or not ano_inicial or not ano_final:
-        return {"message": "Parâmetros obrigatórios: estados, ano_inicial, ano_final"}, 400
+        return {
+            "message": "Parâmetros obrigatórios: estados, ano_inicial, ano_final"
+        }, 400
 
     resultados = (
         db.session.query(
@@ -277,7 +279,7 @@ def estatisticas_por_estado_imp():
         )
         .filter(
             ExportacaoModel.uf_id.in_(estados),
-            ExportacaoModel.ano.between(ano_inicial, ano_final)
+            ExportacaoModel.ano.between(ano_inicial, ano_final),
         )
         .group_by(ExportacaoModel.uf_id, ExportacaoModel.ano)
         .order_by(ExportacaoModel.uf_id, ExportacaoModel.ano)
@@ -286,15 +288,18 @@ def estatisticas_por_estado_imp():
 
     retorno = []
     for row in resultados:
-        retorno.append({
-            "state": row.uf_id,
-            "year": row.ano,
-            "Valor FOB": float(row.export_valor or 0),
-            "Peso (Kg)": float(row.peso or 0),
-        })
+        retorno.append(
+            {
+                "state": row.uf_id,
+                "year": row.ano,
+                "Valor FOB": float(row.export_valor or 0),
+                "Peso (Kg)": float(row.peso or 0),
+            }
+        )
 
     return retorno
-  
+
+
 @exportacoes.route("/api/exportacoes/graficos-pesquisa", methods=["POST"])
 def graficos_pesquisa_exportacoes():
     db = SQLAlchemy.get_instance()
@@ -315,9 +320,10 @@ def graficos_pesquisa_exportacoes():
 
     def get_result(group_by_field):
         return (
-            query_base
-            .filter(*filters)
-            .with_entities(group_by_field, func.sum(ExportacaoModel.valor).label("total"))
+            query_base.filter(*filters)
+            .with_entities(
+                group_by_field, func.sum(ExportacaoModel.valor).label("total")
+            )
             .group_by(group_by_field)
             .order_by(func.sum(ExportacaoModel.valor).desc())
             .limit(6)
@@ -333,5 +339,5 @@ def graficos_pesquisa_exportacoes():
         "por_estado": [{"uf_id": r[0], "total": r[1]} for r in estados],
         "por_via": [{"via_id": r[0], "total": r[1]} for r in vias],
         "por_urf": [{"urf_id": r[0], "total": r[1]} for r in urfs],
-        "por_pais": [{"pais_id": r[0], "total": r[1]} for r in paises]
+        "por_pais": [{"pais_id": r[0], "total": r[1]} for r in paises],
     }

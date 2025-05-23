@@ -61,6 +61,10 @@ def register_blueprints(app: Flask) -> None:
 
     app.register_blueprint(transacoes_bp)
 
+    from src.core.blueprints.forecast import forecast
+
+    app.register_blueprint(forecast)
+
 
 def add_resources(api: Api) -> None:
     """Load the resources into the API."""
