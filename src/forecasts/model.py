@@ -13,6 +13,7 @@ class ForecastModel(BaseModel):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     ds: Mapped[date] = mapped_column(Date, unique=True)
+    y: Mapped[float] = mapped_column(Float, nullable=True)
     yhat: Mapped[float] = mapped_column(Float, nullable=True)
     yhat_lower: Mapped[float] = mapped_column(Float, nullable=True)
     yhat_upper: Mapped[float] = mapped_column(Float, nullable=True)

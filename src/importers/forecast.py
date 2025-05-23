@@ -48,6 +48,7 @@ def _importar(df: pd.DataFrame, forecast: ForecastModel, replace: bool = False):
     for index, row in df.iterrows():
         fore = cls()
         fore.ds = datetime.strptime(row["ds"].strip(), "%Y-%m-%d").date()
+        fore.y = float(row["y"]) if not pd.isna(row["y"]) else None
         fore.yhat = float(row["yhat"])
         fore.yhat_lower = float(row["yhat_lower"])
         fore.yhat_upper = float(row["yhat_upper"])
