@@ -61,6 +61,10 @@ def register_blueprints(app: Flask) -> None:
 
     app.register_blueprint(transacoes_bp)
 
+    from src.core.blueprints.forecast import forecast
+
+    app.register_blueprint(forecast)
+
 
 def add_resources(api: Api) -> None:
     """Load the resources into the API."""
@@ -131,4 +135,7 @@ def add_resources(api: Api) -> None:
     api.add_resource(Balancas, "/api/balancas", "/api/balancas/")
     api.add_resource(Balanca, "/api/balancas/<int:id>")
 
-
+    from src.somas.model import SomaModel
+    from src.forecasts.exportacoes.model import ForecastExportacaoModel
+    from src.forecasts.importacoes.model import ForecastImportacaoModel
+    from src.forecasts.balanca.model import ForecastBalancaModel
