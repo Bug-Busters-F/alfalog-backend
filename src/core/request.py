@@ -13,37 +13,75 @@ from flask_restful import reqparse
 """
 # Valor Agregado
 valor_agregado_args = reqparse.RequestParser()
-valor_agregado_args.add_argument("uf_id", type=int, required=True, help="ID da UF inválido.")
-valor_agregado_args.add_argument("ano", type=int, required=True, help="Um ano deve ser informado.")
-valor_agregado_args.add_argument("ano_inicial", type=int, required=False, help="Informe um ano de início para visualizar um período.")
+valor_agregado_args.add_argument(
+    "uf_id", type=int, required=True, help="ID da UF inválido."
+)
+valor_agregado_args.add_argument(
+    "ano", type=int, required=True, help="Um ano deve ser informado."
+)
+valor_agregado_args.add_argument(
+    "ano_inicial",
+    type=int,
+    required=False,
+    help="Informe um ano de início para visualizar um período.",
+)
 valor_agregado_args.add_argument("tamanho_pagina", type=int, required=False, default=10)
 valor_agregado_args.add_argument("cursor", type=int, required=False, default=0)
 # Cargas Movimentadas
 cargas_movimentadas_args = reqparse.RequestParser()
-cargas_movimentadas_args.add_argument("uf_id", type=int, required=True, help="ID da UF inválido." )
-cargas_movimentadas_args.add_argument("ano", type=int,  required=True, help="Um ano deve ser informado.")
-cargas_movimentadas_args.add_argument("ano_inicial", type=int, required=False, help="Informe um ano de início para visualizar um período.")
-cargas_movimentadas_args.add_argument("tamanho_pagina", type=int, required=False, default=10)
+cargas_movimentadas_args.add_argument(
+    "uf_id", type=int, required=True, help="ID da UF inválido."
+)
+cargas_movimentadas_args.add_argument(
+    "ano", type=int, required=True, help="Um ano deve ser informado."
+)
+cargas_movimentadas_args.add_argument(
+    "ano_inicial",
+    type=int,
+    required=False,
+    help="Informe um ano de início para visualizar um período.",
+)
+cargas_movimentadas_args.add_argument(
+    "tamanho_pagina", type=int, required=False, default=10
+)
 cargas_movimentadas_args.add_argument("cursor", type=int, required=False, default=0)
+
 """
     Argumentos para valor [ Vias utilizadas, URF Utilizadas ]
     uf_id:int          -  ID da sigla do uf informado
     ano:int            -  Ano que ocorreu
 """
-# Vias utilizadas
 vias_utilizadas_args = reqparse.RequestParser()
-vias_utilizadas_args.add_argument("periodo_ano_final", type=int, required=True, help="Ano para ser feito o calculo de periodo")
-vias_utilizadas_args.add_argument("periodo_ano_inicial", type=int, required=False, help="Um ano deve ser informado.")
-vias_utilizadas_args.add_argument("uf_id", type=int, required=True, help="ID da UF inválido.")
+vias_utilizadas_args.add_argument(
+    "ano_final", type=int, required=True, help="Um ano final deve ser informado."
+)
+vias_utilizadas_args.add_argument(
+    "uf_id", type=int, required=True, help="ID da UF inválido."
+)
+vias_utilizadas_args.add_argument(
+    "ano_inicial",
+    type=int,
+    required=False,
+    help="Informe um ano de início para visualizar um período.",
+)
+
 # Urf utilizadas
 urf_utilizadas_args = reqparse.RequestParser()
-urf_utilizadas_args.add_argument("periodo_ano_final",  type=int,  required=True,    help="Ano para ser feito o calculo de periodo")
-urf_utilizadas_args.add_argument("periodo_ano_inicial",  type=int,  required=False,  help="Ano inicial do periodo, se não for passado, apenas pegara o ano normal.")
-urf_utilizadas_args.add_argument("uf_id", type=int,  required=True, help="ID da UF inválido.")
-"""
-    Argumentos para valor [ Balança Comercial ]
-    uf_id:int          -  ID da sigla do uf informado
-"""
+urf_utilizadas_args.add_argument(
+    "ano_final", type=int, required=True, help="Um ano final deve ser informado."
+)
+urf_utilizadas_args.add_argument(
+    "uf_id", type=int, required=True, help="ID da UF inválido."
+)
+urf_utilizadas_args.add_argument(
+    "ano_inicial",
+    type=int,
+    required=False,
+    help="Informe um ano de início para visualizar um período.",
+)
+
 # Balança comercial
 balanca_comercial_args = reqparse.RequestParser()
-balanca_comercial_args.add_argument("uf_id", type=int, required=True, help="UF ID obrigatório")
+balanca_comercial_args.add_argument(
+    "uf_id", type=int, required=True, help="UF ID obrigatório"
+)
