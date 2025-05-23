@@ -307,6 +307,7 @@ def balanca(ctx):
     except Exception as e:
         click.echo(f"❌ Erro ao importar balança comercial: {str(e)}", err=True)
 
+
 @update.command("somas")
 @click.pass_context
 @with_appcontext
@@ -328,3 +329,100 @@ def somas(ctx):
         click.echo("✅ Somas importadas com sucesso!")
     except Exception as e:
         click.echo(f"❌ Erro ao importar somas: {str(e)}", err=True)
+
+
+# has subcommands
+@click.group(invoke_without_command=True)
+@click.pass_context
+@replace_option
+def forecast(ctx, replace: str):
+    """Import forecast data from CSV files and add them into database."""
+    # Store the replace value in the context
+    ctx.ensure_object(dict)
+    ctx.obj["replace"] = replace
+    if ctx.invoked_subcommand is None:
+
+        def run_command(cmd):
+            try:
+                ctx.invoke(cmd)
+            except Exception as e:
+                click.echo(f"❌ Erro ao atualizar {cmd.name}: {str(e)}", err=True)
+
+        main_commands = {"balanca"}
+        all_commands = ctx.command.commands.items()
+
+        commands_main = [cmd for name, cmd in all_commands if name in main_commands]
+        commands_second = [
+            cmd for name, cmd in all_commands if name not in main_commands
+        ]
+
+        for cmd in commands_second:
+            run_command(cmd)
+        for cmd in commands_main:
+            run_command(cmd)
+        click.echo("✅ Todos os comandos foram executados!")
+
+
+update.add_command(forecast)
+
+
+@forecast.command("exportacoes")
+@click.pass_context
+@with_appcontext
+@with_progress_animation()
+def forecast_exportacoes(ctx):
+    """Import as previsões/forecast de exportações."""
+    replace = ctx.obj["replace"]
+    click.echo(f"Importando as previsões/forecast de exportações!")
+    # click.progressbar
+
+    from .forecast import importar_exportacoes
+
+    try:
+        # importar(replace == "sim")
+        importar_exportacoes(replace == "sim")
+        click.echo("✅ Forecast de Exportações atualizadas.")
+    except Exception as e:
+        click.echo(f"❌ Erro ao import Forecast de Exportações: {str(e)}", err=True)
+
+
+@forecast.command("importacoes")
+@click.pass_context
+@with_appcontext
+@with_progress_animation()
+def forecast_importacoes(ctx):
+    """Import as previsões/forecast de importações."""
+    replace = ctx.obj["replace"]
+    click.echo(f"Importando as previsões/forecast de importações!")
+    # click.progressbar
+
+    from .forecast import importar_importacoes
+
+    try:
+        # importar(replace == "sim")
+        importar_importacoes(replace == "sim")
+        click.echo("✅ Forecast de Importações atualizadas.")
+    except Exception as e:
+        click.echo(f"❌ Erro ao import Forecast de Importações: {str(e)}", err=True)
+
+
+@forecast.command("balanca")
+@click.pass_context
+@with_appcontext
+@with_progress_animation()
+def forecast_balanca(ctx):
+    """Import as previsões/forecast de Balança Comercial."""
+    replace = ctx.obj["replace"]
+    click.echo(f"Importando as previsões/forecast de Balança Comercial!")
+    # click.progressbar
+
+    from .forecast import importar_balanca
+
+    try:
+        # importar(replace == "sim")
+        importar_balanca(replace == "sim")
+        click.echo("✅ Forecast de Balança Comercial atualizadas.")
+    except Exception as e:
+        click.echo(
+            f"❌ Erro ao import Forecast de Balança Comercial: {str(e)}", err=True
+        )
