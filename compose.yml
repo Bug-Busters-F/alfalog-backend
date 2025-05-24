@@ -10,7 +10,6 @@ services:
       MYSQL_PASSWORD: ${APP_DB_PASS}
     volumes:
       - mysql_alfalog_data:/var/lib/mysql
-      - ./database/init.sql:/docker-entrypoint-initdb.d/seed.sql
     ports:
       - "${APP_DB_PORT:-3306}:3306"
     healthcheck:
