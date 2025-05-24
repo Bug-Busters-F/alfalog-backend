@@ -1,6 +1,6 @@
 from typing import Optional
 from src.core.base import BaseModel
-from sqlalchemy import ForeignKey, Integer, String, BigInteger, func
+from sqlalchemy import ForeignKey, Integer, String, BigInteger, func, Index, desc
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 from src.ncms.model import NCMModel
@@ -15,9 +15,14 @@ class ImportacaoModel(BaseModel):
     """Model da Transação."""
 
     __tablename__ = "importacoes"
+    __table_args__ = (
+        Index("idx_importacao_ano_uf", "ano", "uf_id"),
+        Index("idx_importacao_ano_uf_peso", "ano", "uf_id", desc("peso")),
+        Index("idx_importacao_ano_uf_via", "ano", "uf_id", "via_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    ano: Mapped[int] = mapped_column(Integer)
+    ano: Mapped[int] = mapped_column(Integer, index=True)
     mes: Mapped[int] = mapped_column(Integer)
     peso: Mapped[int] = mapped_column(BigInteger)
     valor: Mapped[int] = mapped_column(BigInteger)
@@ -26,6 +31,7 @@ class ImportacaoModel(BaseModel):
     ncm_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey(NCMModel.id, ondelete="CASCADE"),
         nullable=True,
+        index=True,
     )
     ncm: Mapped[NCMModel] = relationship(back_populates="importacoes")
     ue_id: Mapped[Optional[int]] = mapped_column(
@@ -41,6 +47,7 @@ class ImportacaoModel(BaseModel):
     uf_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey(UFModel.id, ondelete="CASCADE"),
         nullable=True,
+        index=True,
     )
     uf: Mapped[UFModel] = relationship(back_populates="importacoes")
     via_id: Mapped[Optional[int]] = mapped_column(
