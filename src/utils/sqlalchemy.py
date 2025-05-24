@@ -5,13 +5,13 @@ from flask_sqlalchemy import SQLAlchemy as OriginalSQLAlchemy
 
 
 class SQLAlchemy:
-    """Singleton for a (original) SQLAlchemy instance."""
+    """Singleton for making synchronous database connections."""
 
     _instance: OriginalSQLAlchemy = None
 
-    @staticmethod
-    def get_instance(app: Flask = None) -> OriginalSQLAlchemy:
-        """Return the existing instance of (original) SQLALchemy class or create the first one.
+    @classmethod
+    def get_instance(cls, app: Flask = None) -> OriginalSQLAlchemy:
+        """Return a database connection.
 
         Args:
             app (Flask, optional): Flask app instance. Defaults to None.
@@ -22,24 +22,26 @@ class SQLAlchemy:
         Returns:
             flask_sqlalchemy.SQLAlchemy: DB connection.
         """
-        if SQLAlchemy._instance is None:
+        if cls._instance is None:
             if not isinstance(app, Flask):
                 raise RuntimeError(
                     "Cannot connect to the database. Missing app context."
                 )
-            SQLAlchemy._instance = SQLAlchemy._create_sql_alchemist(app)
+            cls._instance = cls._create_sql_alchemist(app)
 
-        return SQLAlchemy._instance
+        return cls._instance
 
-    @staticmethod
-    def _create_sql_alchemist(app: Flask) -> OriginalSQLAlchemy:
-        """Create a (original) SQLAlchemy instance."""
+    @classmethod
+    def _create_sql_alchemist(cls, app: Flask) -> OriginalSQLAlchemy:
+        """Make a database connection."""
         db = OriginalSQLAlchemy(model_class=BaseModel)
+        cls._build_uri(app)
+        db.init_app(app)
 
+        return db
+
+    def _build_uri(app: Flask) -> None:
         app.config["SQLALCHEMY_DATABASE_URI"] = (
             f"mysql://{app.config['DB_USER']}:{app.config['DB_PASS']}"
             f"@{app.config['DB_HOST']}:{app.config['DB_PORT']}/{app.config['DB_NAME']}"
         )
-        db.init_app(app)
-
-        return db
