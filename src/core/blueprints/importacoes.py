@@ -2,8 +2,18 @@ import marshal
 from flask import Blueprint, request
 from flask_restful import marshal_with
 from sqlalchemy import desc, func, text
-from ..request import valor_agregado_args, cargas_movimentadas_args, vias_utilizadas_args, urf_utilizadas_args
-from ..fields import response_fields_cargas_movimentadas, response_fields_valores_agregados, vias_fields, urfs_fields
+from ..request import (
+    valor_agregado_args,
+    cargas_movimentadas_args,
+    vias_utilizadas_args,
+    urf_utilizadas_args,
+)
+from ..fields import (
+    response_fields_cargas_movimentadas,
+    response_fields_valores_agregados,
+    vias_fields,
+    urfs_fields,
+)
 from src.importacoes.model import ImportacaoModel
 from src.ufs.model import UFModel
 from src.ncms.model import NCMModel
@@ -25,7 +35,9 @@ def valor_agregado():
     cursor = max(1, args["cursor"])
     offset = (cursor - 1) * tamanho_pagina
 
-    valor_agregado_expr = (ImportacaoModel.valor / func.nullif(ImportacaoModel.peso, 0)).label("valor_agregado")
+    valor_agregado_expr = (
+        ImportacaoModel.valor / func.nullif(ImportacaoModel.peso, 0)
+    ).label("valor_agregado")
 
     base_query = (
         db.session.query(
@@ -34,7 +46,7 @@ def valor_agregado():
             ImportacaoModel.mes,
             ImportacaoModel.peso,
             ImportacaoModel.valor,
-            valor_agregado_expr, 
+            valor_agregado_expr,
             ImportacaoModel.ncm_id,
             ImportacaoModel.ue_id,
             ImportacaoModel.pais_id,
@@ -56,9 +68,9 @@ def valor_agregado():
 
     # Buscar 'per_page + 1' registros
     num_to_fetch = tamanho_pagina + 1
-    entries_plus_one = base_query.order_by(
-        *order_clause
-    ).limit(num_to_fetch).offset(offset).all()
+    entries_plus_one = (
+        base_query.order_by(*order_clause).limit(num_to_fetch).offset(offset).all()
+    )
 
     # Determinar se há uma próxima página
     has_next = len(entries_plus_one) > tamanho_pagina
@@ -92,7 +104,9 @@ def cargas_movimentadas():
     tamanho_pagina = max(1, args["tamanho_pagina"])
     cursor = max(1, args["cursor"])
     offset = (cursor - 1) * tamanho_pagina
-    valor_agregado_expr = (ImportacaoModel.valor / func.nullif(ImportacaoModel.peso, 0)).label("valor_agregado")
+    valor_agregado_expr = (
+        ImportacaoModel.valor / func.nullif(ImportacaoModel.peso, 0)
+    ).label("valor_agregado")
 
     db = SQLAlchemy.get_instance()
 
@@ -116,14 +130,16 @@ def cargas_movimentadas():
     )
 
     # filtering
-    ano_inicial = args.get("ano_inicial") # Usar .get() para evitar KeyError se não existir
+    ano_inicial = args.get(
+        "ano_inicial"
+    )  # Usar .get() para evitar KeyError se não existir
     base_query = _filter_year_or_period(base_query, args.get("ano"), ano_inicial)
     order_clause = (desc(ImportacaoModel.peso), desc(ImportacaoModel.id))
 
     num_to_fetch = tamanho_pagina + 1
-    entries_plus_one = base_query.order_by(
-        *order_clause
-    ).limit(num_to_fetch).offset(offset).all()
+    entries_plus_one = (
+        base_query.order_by(*order_clause).limit(num_to_fetch).offset(offset).all()
+    )
 
     has_next = len(entries_plus_one) > tamanho_pagina
 
@@ -131,7 +147,7 @@ def cargas_movimentadas():
     entries_paginadas = entries_plus_one[:tamanho_pagina]
 
     has_previous = cursor > 1
-    
+
     response = {
         "pagina": cursor,
         "quantidade_pagina": tamanho_pagina,
@@ -142,53 +158,67 @@ def cargas_movimentadas():
 
     return response
 
-
 @importacoes.route("/api/importacoes/vias-utilizadas", methods=["POST"])
 @marshal_with(vias_fields)
 def vias_utilizadas():
     """Retorna as vias e a quantidade de vezes que foram usadas em um estado."""
     args = vias_utilizadas_args.parse_args(strict=True)
-
     db = SQLAlchemy.get_instance()
 
-    entries = (
+    filters = [ImportacaoModel.uf_id == args["uf_id"]]
+    ano_inicial = args.get("ano_inicial")
+    ano_final = args["ano_final"]
+
+    if ano_inicial is not None:
+        filters.append(ImportacaoModel.ano.between(ano_inicial, ano_final))
+    else:
+        filters.append(ImportacaoModel.ano == ano_final)
+
+    base_query = (
         db.session.query(
             db.func.count(ImportacaoModel.via_id).label("qtd"),
-            ImportacaoModel.via_id.label("via_id")
+            ImportacaoModel.via_id.label("via_id"),
         )
         .join(ViaModel, ImportacaoModel.via_id == ViaModel.id)
-        .filter(ImportacaoModel.ano == args["ano"], ImportacaoModel.uf_id == args["uf_id"])
+        .filter(*filters)
         .group_by(ImportacaoModel.via_id)
-        .all()
+        .order_by(desc("qtd"))
     )
 
+    entries = base_query.all()
     return entries
 
-    # comando p/ testes CMD
-    # curl -X POST http://127.0.0.1:5000/api/importacoes/vias-utilizadas -H "Content-Type: application/json" -d "{\"ano\": 2023, \"uf_id\": 12}"
+
 
 @importacoes.route("/api/importacoes/urfs-utilizadas", methods=["POST"])
 @marshal_with(urfs_fields)
 def urfs_utilizadas():
     """Retorna as URFs e a quantidade de vezes que foram usadas."""
     args = urf_utilizadas_args.parse_args(strict=True)
-
     db = SQLAlchemy.get_instance()
 
-    entries = (
+    filters = [ImportacaoModel.uf_id == args["uf_id"]]
+    ano_inicial = args.get("ano_inicial")
+    ano_final = args["ano_final"]
+
+    if ano_inicial is not None:
+        filters.append(ImportacaoModel.ano.between(ano_inicial, ano_final))
+    else:
+        filters.append(ImportacaoModel.ano == ano_final)
+
+    base_query = (
         db.session.query(
             ImportacaoModel.urf_id.label("urf_id"),
-            db.func.count(ImportacaoModel.urf_id).label("qtd")
+            db.func.count(ImportacaoModel.urf_id).label("qtd"),
         )
-        .filter(
-            ImportacaoModel.ano == args["ano"],
-            ImportacaoModel.uf_id == args["uf_id"]
-        )
+        .filter(*filters)
         .group_by(ImportacaoModel.urf_id)
-        .all()
+        .order_by(db.func.count(ImportacaoModel.urf_id).desc())
     )
 
+    entries = base_query.all()
     return entries
+
 
     # comando p/ testes CMD
     # curl -X POST http://127.0.0.1:5000/api/exportacoes/urfs-utilizadas -H "Content-Type: application/json" -d "{\"ano\": 2023, \"uf_id\": 12}"
@@ -220,3 +250,82 @@ def _filter_year_or_period(query, year_end: int, year_start: int = None):
         return query.filter(ImportacaoModel.ano.between(year_start, year_end))
     return query.filter(ImportacaoModel.ano == year_end)
 
+@importacoes.route("/api/importacoes/comparacao-estados", methods=["POST"])
+def estatisticas_por_estado():  
+    """ Retorna os dados de dois estados passados no parametro pelo uf_id """
+    db = SQLAlchemy.get_instance()
+    args = request.get_json()
+
+    estados = args.get("estados")
+    ano_inicial = args.get("ano_inicial")
+    ano_final = args.get("ano_final")
+
+    if not estados or not ano_inicial or not ano_final:
+        return {"message": "Parâmetros obrigatórios: estados, ano_inicial, ano_final"}, 400
+
+    resultados = (
+        db.session.query(
+            ImportacaoModel.uf_id,
+            ImportacaoModel.ano,
+            func.sum(ImportacaoModel.valor).label("export_valor"),
+            func.sum(ImportacaoModel.peso).label("peso"),
+        )
+        .filter(
+            ImportacaoModel.uf_id.in_(estados),
+            ImportacaoModel.ano.between(ano_inicial, ano_final)
+        )
+        .group_by(ImportacaoModel.uf_id, ImportacaoModel.ano)
+        .order_by(ImportacaoModel.uf_id, ImportacaoModel.ano)
+        .all()
+    )
+
+    retorno = []
+    for row in resultados:
+        retorno.append({
+            "state": row.uf_id,
+            "year": row.ano,
+            "Valor FOB": float(row.export_valor or 0),
+            "Peso (Kg)": float(row.peso or 0),
+        })
+
+    return retorno
+  
+@importacoes.route("/api/importacoes/graficos-pesquisa", methods=["POST"])
+def graficos_pesquisa_importacoes():
+    db = SQLAlchemy.get_instance()
+    data = request.get_json()
+
+    ncm = data.get("ncm")
+    ano_inicial = data.get("ano_inicial")
+    ano_final = data.get("ano_final")
+
+    filters = []
+    if ncm:
+        filters.append(NCMModel.codigo == ncm)
+    if ano_inicial and ano_final:
+        filters.append(ImportacaoModel.ano.between(ano_inicial, ano_final))
+
+    query_base = db.session.query(ImportacaoModel).join(ImportacaoModel.ncm)
+
+    def get_result(group_by_field):
+        return (
+            query_base
+            .filter(*filters)
+            .with_entities(group_by_field, func.sum(ImportacaoModel.valor).label("total"))
+            .group_by(group_by_field)
+            .order_by(func.sum(ImportacaoModel.valor).desc())
+            .limit(6)
+            .all()
+        )
+
+    estados = get_result(ImportacaoModel.uf_id)
+    vias = get_result(ImportacaoModel.via_id)
+    urfs = get_result(ImportacaoModel.urf_id)
+    paises = get_result(ImportacaoModel.pais_id)
+
+    return {
+        "por_estado": [{"uf_id": r[0], "total": r[1]} for r in estados],
+        "por_via": [{"via_id": r[0], "total": r[1]} for r in vias],
+        "por_urf": [{"urf_id": r[0], "total": r[1]} for r in urfs],
+        "por_pais": [{"pais_id": r[0], "total": r[1]} for r in paises]
+    }

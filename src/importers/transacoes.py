@@ -4,6 +4,7 @@ from src.utils.sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from tqdm import tqdm
 from datetime import datetime
+from src.somas.model import SomaModel
 
 
 class DataLoader:
@@ -81,13 +82,64 @@ def importar_dados(db, caminho_csv, tipo_dado='importacoes'):
     df_final = pd.concat(dfs_processed, ignore_index=True)
     loader.insert_bulk_data(df_final, tipo_dado)
 
+def calcular_somas_por_uf_e_ano_csv(db, caminho_csv_imp: str, caminho_csv_exp: str, replace: bool = False):
+    df_imp = pd.read_csv(caminho_csv_imp, usecols=["ANO", "SG_UF", "VL_FOB", "KG_LIQUIDO"])
+    df_exp = pd.read_csv(caminho_csv_exp, usecols=["ANO", "SG_UF", "VL_FOB", "KG_LIQUIDO"])
+
+    # Remove registros com KG_LIQUIDO zero ou nulo para evitar divisão por zero
+    df_imp = df_imp[df_imp["KG_LIQUIDO"] > 0]
+    df_exp = df_exp[df_exp["KG_LIQUIDO"] > 0]
+
+    # Calcula o novo valor por quilo
+    df_imp["VL_AGREGADO"] = df_imp["VL_FOB"] / df_imp["KG_LIQUIDO"]
+    df_exp["VL_AGREGADO"] = df_exp["VL_FOB"] / df_exp["KG_LIQUIDO"]
+
+    # Agrupamento e agregação
+    grupo_imp = df_imp.groupby(["ANO", "SG_UF"]).agg(
+        numero_total_importacoes=("VL_FOB", "count"),
+        valor_agregado_total_importacao_reais=("VL_AGREGADO", "sum")
+    ).reset_index()
+
+    grupo_exp = df_exp.groupby(["ANO", "SG_UF"]).agg(
+        numero_total_exportacao=("VL_FOB", "count"),
+        valor_agregado_total_exportacao_reais=("VL_AGREGADO", "sum")
+    ).reset_index()
+
+    grupo_imp.rename(columns={"SG_UF": "estado", "ANO": "ano"}, inplace=True)
+    grupo_exp.rename(columns={"SG_UF": "estado", "ANO": "ano"}, inplace=True)
+
+    df_final = pd.merge(grupo_exp, grupo_imp, on=["estado", "ano"], how="outer").fillna(0)
+    df_final["numero_total_exportacao"] = df_final["numero_total_exportacao"].astype(int)
+    df_final["numero_total_importacoes"] = df_final["numero_total_importacoes"].astype(int)
+    df_final["valor_agregado_total_exportacao_reais"] = df_final["valor_agregado_total_exportacao_reais"].astype(int).astype(str)
+    df_final["valor_agregado_total_importacao_reais"] = df_final["valor_agregado_total_importacao_reais"].astype(int).astype(str)
+    df_final["ano"] = df_final["ano"].astype(str)
+
+    # Constrói objetos da tabela `somas`
+    registros = []
+    for _, row in df_final.iterrows():
+        registro = SomaModel(
+            estado=row["estado"],
+            ano=row["ano"],
+            numero_total_exportacao=row["numero_total_exportacao"],
+            numero_total_importacoes=row["numero_total_importacoes"],
+            valor_agregado_total_exportacao_reais=row["valor_agregado_total_exportacao_reais"],
+            valor_agregado_total_importacao_reais=row["valor_agregado_total_importacao_reais"]
+        )
+        registros.append(registro)
+
+    # Salva no banco
+    with db.session.begin():
+        if replace:
+            db.session.query(SomaModel).delete()
+        db.session.add_all(registros)
 
 if __name__ == "__main__":
     app = create_app()
     with app.app_context():
         db = SQLAlchemy.get_instance()
         # chame as funcoes no /comex.py
-
-        #aqui somente exemplos
+        # aqui somente exemplos
+        # calcular_somas_por_uf_e_ano(db)
         # importar_dados(db, "./data/dados_comex_EXP_2014_2024.csv", 'exportacoes')
         # importar_dados(db, "./data/dados_comex_IMP_2014_2024.csv", 'importacoes')

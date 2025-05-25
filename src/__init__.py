@@ -1,5 +1,4 @@
 from src.utils.sqlalchemy import SQLAlchemy
-
 from flask import Flask
 from flask_restful import Api
 from flask_cors import CORS
@@ -57,6 +56,14 @@ def register_blueprints(app: Flask) -> None:
     from src.core.blueprints.importacoes import importacoes
 
     app.register_blueprint(importacoes)
+
+    from src.core.blueprints.transacoes import transacoes_bp
+
+    app.register_blueprint(transacoes_bp)
+
+    from src.core.blueprints.forecast import forecast
+
+    app.register_blueprint(forecast)
 
 
 def add_resources(api: Api) -> None:
@@ -122,4 +129,13 @@ def add_resources(api: Api) -> None:
     api.add_resource(Importacoes, "/api/importacoes", "/api/importacoes/")
     api.add_resource(Importacao, "/api/importacoes/<int:id>")
 
+    # Balança resources
+    from src.balanca.resources import Balancas, Balanca
 
+    api.add_resource(Balancas, "/api/balancas", "/api/balancas/")
+    api.add_resource(Balanca, "/api/balancas/<int:id>")
+
+    from src.somas.model import SomaModel
+    from src.forecasts.exportacoes.model import ForecastExportacaoModel
+    from src.forecasts.importacoes.model import ForecastImportacaoModel
+    from src.forecasts.balanca.model import ForecastBalancaModel

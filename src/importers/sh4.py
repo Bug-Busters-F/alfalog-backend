@@ -13,9 +13,6 @@ def importar(replace: bool = False):
 
     # Loop para cada linha do CSV
     for index, row in df.iterrows():
-        # Se a primeira linha do CSV for cabeçalho, podemos pular index == 0
-        if index == 0:
-            continue
 
         sh4 = db.session.query(SH4Model).filter_by(codigo=row["CO_SH4"]).first()
         if sh4 and not replace:

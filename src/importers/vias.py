@@ -14,9 +14,6 @@ def importar(replace: bool = False):
 
     # para cada linha do CSV, criar um objeto ViaModel e salvar no BD
     for index, row in exp_df_base.iterrows():
-        # Se a primeira linha do CSV for cabeçalho, você pode pular index == 0
-        if index == 0:
-            continue
 
         via = db.session.query(ViaModel).filter_by(codigo=row["CO_VIA"]).first()
         if via and not replace:

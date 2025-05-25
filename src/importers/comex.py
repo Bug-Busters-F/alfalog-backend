@@ -287,3 +287,177 @@ def importacoes(ctx):
         click.echo("✅ Transações atualizadas.")
     except Exception as e:
         click.echo(f"❌ Erro ao import Transações: {str(e)}", err=True)
+
+
+# has subcommands
+@click.group(invoke_without_command=True)
+@click.pass_context
+@replace_option
+def process(ctx, replace: str):
+    """Retrieve data from database, process them and store them somewhere else."""
+    # Store the replace value in the context
+    ctx.ensure_object(dict)
+    ctx.obj["replace"] = replace
+    if ctx.invoked_subcommand is None:
+
+        def run_command(cmd):
+            try:
+                ctx.invoke(cmd)
+            except Exception as e:
+                click.echo(f"❌ Erro ao atualizar {cmd.name}: {str(e)}", err=True)
+
+        main_commands = {"balanca"}
+        all_commands = ctx.command.commands.items()
+
+        commands_main = [cmd for name, cmd in all_commands if name in main_commands]
+        commands_second = [
+            cmd for name, cmd in all_commands if name not in main_commands
+        ]
+
+        for cmd in commands_second:
+            run_command(cmd)
+        for cmd in commands_main:
+            run_command(cmd)
+        click.echo("✅ Todos os comandos foram executados!")
+
+
+comex.add_command(process)
+
+
+@process.command("balanca")
+@click.pass_context
+@with_appcontext
+@with_progress_animation("Calculando balança comercial")
+def balanca(ctx):
+    """Processa os dados de balança comercial (exportação - importação)."""
+    replace = ctx.obj["replace"]
+
+    from src.utils.sqlalchemy import SQLAlchemy
+    from .balanca import importar_balanca
+
+    try:
+        db = SQLAlchemy.get_instance()
+        importar_balanca(db, replace == "sim")
+        click.echo("✅ Balança comercial importada.")
+    except Exception as e:
+        click.echo(f"❌ Erro ao importar balança comercial: {str(e)}", err=True)
+
+
+@process.command("somas")
+@click.pass_context
+@with_appcontext
+@with_progress_animation()
+def somas(ctx):
+    """Processa as Somas de Importação e Exportação por UF e ano."""
+    replace = ctx.obj["replace"]
+    click.echo("📊 Importando as somas dos estados...")
+
+    from src.utils.sqlalchemy import SQLAlchemy
+    from .transacoes import calcular_somas_por_uf_e_ano_csv
+
+    db = SQLAlchemy.get_instance()
+
+    try:
+        caminho_csv_imp = "./data/dados_comex_IMP_2014_2024.csv"
+        caminho_csv_exp = "./data/dados_comex_EXP_2014_2024.csv"
+        calcular_somas_por_uf_e_ano_csv(db, caminho_csv_imp, caminho_csv_exp, replace)
+        click.echo("✅ Somas importadas com sucesso!")
+    except Exception as e:
+        click.echo(f"❌ Erro ao importar somas: {str(e)}", err=True)
+
+
+# has subcommands
+@click.group(invoke_without_command=True)
+@click.pass_context
+@replace_option
+def forecast(ctx, replace: str):
+    """Import forecast data from CSV files and add them into database."""
+    # Store the replace value in the context
+    ctx.ensure_object(dict)
+    ctx.obj["replace"] = replace
+    if ctx.invoked_subcommand is None:
+
+        def run_command(cmd):
+            try:
+                ctx.invoke(cmd)
+            except Exception as e:
+                click.echo(f"❌ Erro ao atualizar {cmd.name}: {str(e)}", err=True)
+
+        main_commands = {"balanca"}
+        all_commands = ctx.command.commands.items()
+
+        commands_main = [cmd for name, cmd in all_commands if name in main_commands]
+        commands_second = [
+            cmd for name, cmd in all_commands if name not in main_commands
+        ]
+
+        for cmd in commands_second:
+            run_command(cmd)
+        for cmd in commands_main:
+            run_command(cmd)
+        click.echo("✅ Todos os comandos foram executados!")
+
+
+update.add_command(forecast)
+
+
+@forecast.command("exportacoes")
+@click.pass_context
+@with_appcontext
+@with_progress_animation()
+def forecast_exportacoes(ctx):
+    """Import as previsões/forecast de exportações."""
+    replace = ctx.obj["replace"]
+    click.echo(f"Importando as previsões/forecast de exportações!")
+    # click.progressbar
+
+    from .forecast import importar_exportacoes
+
+    try:
+        # importar(replace == "sim")
+        importar_exportacoes(replace == "sim")
+        click.echo("✅ Forecast de Exportações atualizadas.")
+    except Exception as e:
+        click.echo(f"❌ Erro ao import Forecast de Exportações: {str(e)}", err=True)
+
+
+@forecast.command("importacoes")
+@click.pass_context
+@with_appcontext
+@with_progress_animation()
+def forecast_importacoes(ctx):
+    """Import as previsões/forecast de importações."""
+    replace = ctx.obj["replace"]
+    click.echo(f"Importando as previsões/forecast de importações!")
+    # click.progressbar
+
+    from .forecast import importar_importacoes
+
+    try:
+        # importar(replace == "sim")
+        importar_importacoes(replace == "sim")
+        click.echo("✅ Forecast de Importações atualizadas.")
+    except Exception as e:
+        click.echo(f"❌ Erro ao import Forecast de Importações: {str(e)}", err=True)
+
+
+@forecast.command("balanca")
+@click.pass_context
+@with_appcontext
+@with_progress_animation()
+def forecast_balanca(ctx):
+    """Import as previsões/forecast de Balança Comercial."""
+    replace = ctx.obj["replace"]
+    click.echo(f"Importando as previsões/forecast de Balança Comercial!")
+    # click.progressbar
+
+    from .forecast import importar_balanca
+
+    try:
+        # importar(replace == "sim")
+        importar_balanca(replace == "sim")
+        click.echo("✅ Forecast de Balança Comercial atualizadas.")
+    except Exception as e:
+        click.echo(
+            f"❌ Erro ao import Forecast de Balança Comercial: {str(e)}", err=True
+        )

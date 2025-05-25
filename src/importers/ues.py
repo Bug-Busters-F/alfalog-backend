@@ -12,8 +12,6 @@ def importar(replace: bool = False):
     db = SQLAlchemy.get_instance()
 
     for index, row in exp_df_base.iterrows():
-        if index == 0:
-            continue
 
         ue = db.session.query(UEModel).filter_by(codigo=row["CO_UNID"]).first()
         if ue and not replace:
