@@ -118,7 +118,7 @@ O Flask está disponível em: [http://localhost:5000](http://localhost:5000)
 
 Para importar os dados de exportações e importações, além de dados secundários como UFs (Unidades Federativas), da base do COMEX, siga os seguintes passos.
 
-1. Abra o [Google Colab](https://colab.research.google.com/drive/1WRSAEERIYsReXWyuLLLTs28WkV41tFyW?usp=sharing) e execute a limpeza dos dados.
+1. Abra o [Google Colab](https://colab.research.google.com/drive/1WRSAEERIYsReXWyuLLLTs28WkV41tFyW?usp=sharing) ou do [repositório principal](https://github.com/Bug-Busters-F/alfalog/blob/dev/tratamento-dados/Tratamento%20dos%20Dados%20de%20Exporta%C3%A7%C3%A3o%20e%20Importa%C3%A7%C3%A3o%20dos%20Estados%20Brasileiros.ipynb) e execute a limpeza dos dados.
 
 2. Em seguida, encontre dois arquivos .csv no seu Google Drive no diretório `/comex_data`
 
@@ -131,7 +131,17 @@ Para importar os dados de exportações e importações, além de dados secundá
     dados_comex_IMP_2014_2024.csv
     ```
 
-4. Agora você pode importar os dados do COMEX executando o seguinte comando:
+4. Abra o [Google Colab](https://colab.research.google.com/drive/1WRSAEERIYsReXWyuLLLTs28WkV41tFyW?usp=sharing) ou do [repositório principal](https://github.com/Bug-Busters-F/alfalog/blob/dev/tratamento-dados/Previs%C3%A3o%20da%20Balan%C3%A7a%20Comercial%20do%20Brasil.ipynb) e execute a Previsão do comércio exterior para os próximos anos.
+
+5. Faça o download dos três arquivos e copie-os para uma pasta na raiz do projeto chamada `/data` com os seguintes nomes:
+
+    ```sh
+    balanca_forecast_prophet_suavizado.csv
+    exportacao_forecast_prophet_suavizado.csv
+    importacao_forecast_prophet_suavizado.csv
+    ```
+
+6. Agora você pode importar os dados do COMEX executando o seguinte comando:
 
     ```sh
     flask comex update
@@ -140,17 +150,29 @@ Para importar os dados de exportações e importações, além de dados secundá
     flask comex update --help
     ```
 
-5. Caso queira importar os dados de uma única entidade, execute:
+   1. Caso queira importar os dados de uma única entidade, execute:
 
-    ```sh
-    flask comex update <nome-entidade>
+       ```sh
+       flask comex update <nome-entidade>
 
-    # execute para saber as entidades existentes
-    flask comex update --help
+       # execute para saber as entidades existentes
+       flask comex update --help
 
-    # Por exemplo:
-    flask comex update importacoes # para dados da importação
-    ```
+       # Por exemplo:
+       flask comex update importacoes # para dados da importação
+       ```
+
+### Processamento de dados
+
+Alguns dados precisam ser processados para melhorar a execução do programa, para isso execute o seguinte comando.
+Ele exige que a [importação de dados](#importação-de-dados-do-comex) já tenha sido feita. Se ainda não a fez, faça primeiro seguindo [esses passos](#importação-de-dados-do-comex).
+
+```sh
+flask comex process
+
+# para mais informações, execute
+flask comex process --help
+```
 
 ## Testes
 
