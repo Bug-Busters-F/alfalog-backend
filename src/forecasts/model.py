@@ -12,7 +12,7 @@ class ForecastModel(BaseModel):
     # __tablename__ = "forecasts"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    ds: Mapped[date] = mapped_column(Date, unique=True)
+    ds: Mapped[date] = mapped_column(Date)
     y: Mapped[float] = mapped_column(Float, nullable=True)
     yhat: Mapped[float] = mapped_column(Float, nullable=True)
     yhat_lower: Mapped[float] = mapped_column(Float, nullable=True)

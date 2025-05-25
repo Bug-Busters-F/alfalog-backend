@@ -289,12 +289,47 @@ def importacoes(ctx):
         click.echo(f"❌ Erro ao import Transações: {str(e)}", err=True)
 
 
-@update.command("balanca")
+# has subcommands
+@click.group(invoke_without_command=True)
+@click.pass_context
+@replace_option
+def process(ctx, replace: str):
+    """Retrieve data from database, process them and store them somewhere else."""
+    # Store the replace value in the context
+    ctx.ensure_object(dict)
+    ctx.obj["replace"] = replace
+    if ctx.invoked_subcommand is None:
+
+        def run_command(cmd):
+            try:
+                ctx.invoke(cmd)
+            except Exception as e:
+                click.echo(f"❌ Erro ao atualizar {cmd.name}: {str(e)}", err=True)
+
+        main_commands = {"balanca"}
+        all_commands = ctx.command.commands.items()
+
+        commands_main = [cmd for name, cmd in all_commands if name in main_commands]
+        commands_second = [
+            cmd for name, cmd in all_commands if name not in main_commands
+        ]
+
+        for cmd in commands_second:
+            run_command(cmd)
+        for cmd in commands_main:
+            run_command(cmd)
+        click.echo("✅ Todos os comandos foram executados!")
+
+
+comex.add_command(process)
+
+
+@process.command("balanca")
 @click.pass_context
 @with_appcontext
 @with_progress_animation("Calculando balança comercial")
 def balanca(ctx):
-    """Importa os dados de balança comercial (exportação - importação)."""
+    """Processa os dados de balança comercial (exportação - importação)."""
     replace = ctx.obj["replace"]
 
     from src.utils.sqlalchemy import SQLAlchemy
@@ -308,12 +343,12 @@ def balanca(ctx):
         click.echo(f"❌ Erro ao importar balança comercial: {str(e)}", err=True)
 
 
-@update.command("somas")
+@process.command("somas")
 @click.pass_context
 @with_appcontext
 @with_progress_animation()
 def somas(ctx):
-    """Importa as Somas de Importação e Exportação por UF e ano."""
+    """Processa as Somas de Importação e Exportação por UF e ano."""
     replace = ctx.obj["replace"]
     click.echo("📊 Importando as somas dos estados...")
 
